@@ -22,7 +22,6 @@ use esp_hal::rmt::Rmt;
 use esp_hal::time::Rate;
 use esp_hal::timer::timg::TimerGroup;
 use esp_hal_smartled::SmartLedsAdapterAsync;
-use esp_wifi::ble::controller::BleConnector;
 use log::info;
 use smart_leds::SmartLedsWriteAsync;
 
@@ -32,7 +31,7 @@ extern crate alloc;
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
 esp_bootloader_esp_idf::esp_app_desc!();
 
-#[esp_hal_embassy::main]
+#[esp_rtos::main]
 async fn main(spawner: Spawner) {
     // generator version: 0.5.0
 
@@ -41,23 +40,24 @@ async fn main(spawner: Spawner) {
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
 
-    esp_alloc::heap_allocator!(size: 64 * 1024);
+    // esp_alloc::heap_allocator!(size: 64 * 1024);
     // COEX needs more RAM - so we've added some more
-    esp_alloc::heap_allocator!(#[unsafe(link_section = ".dram2_uninit")] size: 64 * 1024);
+    // esp_alloc::heap_allocator!(#[unsafe(link_section = ".dram2_uninit")] size: 64 * 1024);
 
-    let timer0 = TimerGroup::new(peripherals.TIMG1);
-    esp_hal_embassy::init(timer0.timer0);
+    let timg0 = TimerGroup::new(peripherals.TIMG0);
+    esp_rtos::start(
+        timg0.timer0,
+        #[cfg(target_arch = "riscv32")]
+        sw_int.software_interrupt0,
+    );
 
     info!("Embassy initialized!");
-
-    let rng = esp_hal::rng::Rng::new(peripherals.RNG);
-    let timer1 = TimerGroup::new(peripherals.TIMG0);
-    let wifi_init =
-        esp_wifi::init(timer1.timer0, rng).expect("Failed to initialize WIFI/BLE controller");
-    let (mut _wifi_controller, _interfaces) = esp_wifi::wifi::new(&wifi_init, peripherals.WIFI)
-        .expect("Failed to initialize WIFI controller");
+    let wifi_init = esp_radio::init().expect("Failed to initialize WIFI/BLE controller");
+    let (mut _wifi_controller, _interfaces) =
+        esp_radio::wifi::new(&wifi_init, peripherals.WIFI, Default::default())
+            .expect("Failed to initialize WIFI controller");
     // find more examples https://github.com/embassy-rs/trouble/tree/main/examples/esp32
-    let transport = BleConnector::new(&wifi_init, peripherals.BT);
+    let transport = esp_radio::ble::controller::BleConnector::new(&wifi_init, peripherals.BT);
     let _ble_controller = ExternalController::<_, 5>::new(transport);
 
     // TODO: Spawn some tasks
@@ -84,13 +84,14 @@ async fn main(spawner: Spawner) {
         led,
         smart_leds_matrix::layout::Rectangular::new_tc001(32, 8),
     );
+    matrix.set_brightness(32);
     let style = embedded_graphics::mono_font::MonoTextStyle::new(
-        &embedded_graphics::mono_font::ascii::FONT_5X7,
-        embedded_graphics::pixelcolor::Rgb888::CYAN,
+        &embedded_graphics::mono_font::ascii::FONT_4X6,
+        embedded_graphics::pixelcolor::Rgb888::RED,
     );
 
     loop {
-        embedded_graphics::text::Text::new("RUST!", Point::new(3, 6), style)
+        embedded_graphics::text::Text::new("RUST!", Point::new(0, 5), style)
             .draw(&mut matrix)
             .ok();
         matrix.flush_with_gamma().await.ok();
