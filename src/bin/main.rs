@@ -178,7 +178,7 @@ async fn main(spawner: Spawner) {
     matrix.set_brightness(32);*/
     let led = peripherals.GPIO32;
     let rmt = peripherals.RMT;
-    /*static APP_CORE_STACK: StaticCell<Stack<{ 8 * 1024 }>> = StaticCell::new();
+    static APP_CORE_STACK: StaticCell<Stack<{ 8 * 1024 }>> = StaticCell::new();
     let app_core_stack = APP_CORE_STACK.init(Stack::new());
 
     let sw_int = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
@@ -195,9 +195,9 @@ async fn main(spawner: Spawner) {
                 spawner.spawn(matrix_task(rmt, led)).ok();
             });
         },
-    );*/
+    );
 
-    spawner.spawn(matrix_task(rmt, led)).ok();
+    //spawner.spawn(matrix_task(rmt, led)).ok();
 
     loop {
         info!("Looping...");
