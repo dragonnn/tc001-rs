@@ -4,9 +4,6 @@ name         = "tc001"
 rust-version = "1.86"
 version      = "0.1.0"
 
-[[bin]]
-name = "tc001"
-path = "./src/bin/main.rs"
 
 [dependencies]
 esp-bootloader-esp-idf = { version = "0.2.0", features = ["esp32"] }
@@ -30,6 +27,7 @@ embassy-net = { version = "0.7.0", features = [
   "medium-ethernet",
   "tcp",
   "udp",
+  "dns"
 ] }
 embedded-io = "0.6.1"
 embedded-io-async = "0.6.1"
@@ -68,12 +66,15 @@ smoltcp = { version = "0.12.0", default-features = false, features = [
   "socket-raw",
   "socket-tcp",
   "socket-udp",
+  "alloc"
 ] }
 static_cell = "2.1.1"
 trouble-host = { version = "0.4.0", features = ["gatt"] }
 heapless = "0.9.1"
 
 dotenvy_macro = "0.15.7"
+chrono = { version = "0.4.40", default-features = false, features = ["alloc"] }
+chrono-tz = { version = "0.10.3", default-features = false }
 
 [profile.dev]
 # Rust debug is too slow.

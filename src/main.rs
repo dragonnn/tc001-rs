@@ -7,6 +7,7 @@
     holding buffers for the duration of a data transfer."
 )]
 
+use alloc::boxed::Box;
 use alloc::vec;
 use bt_hci::controller::ExternalController;
 use core::fmt::Write;
@@ -31,10 +32,14 @@ use esp_radio::{
     Controller,
 };
 use esp_rtos::embassy::Executor;
+use esp_rtos::embassy::InterruptExecutor;
+use log::error;
 use log::info;
 use smart_leds::SmartLedsWriteAsync;
 use static_cell::StaticCell;
 extern crate alloc;
+
+mod sntpc;
 
 // When you are okay with using a nightly compiler it's better to use https://docs.rs/static_cell/2.1.0/static_cell/macro.make_static.html
 macro_rules! mk_static {
@@ -54,6 +59,7 @@ esp_bootloader_esp_idf::esp_app_desc!();
 async fn matrix_task(
     rmt: esp_hal::peripherals::RMT<'static>,
     mut led: esp_hal::peripherals::GPIO32<'static>,
+    rtc: &'static esp_hal::rtc_cntl::Rtc<'static>,
 ) {
     //let led = Output::new(led, Level::High, OutputConfig::default());
     embassy_time::Timer::after(Duration::from_millis(100)).await;
@@ -106,7 +112,9 @@ async fn matrix_task(
             ))
             .draw(&mut matrix)
             .ok();
-        write!(&mut buf, "RUST {}", loops).ok();
+        let now = rtc.current_time_us();
+        let now = chrono::NaiveDateTime::from_timestamp_micros(now as i64).unwrap();
+        write!(&mut buf, "{}", now.time()).ok();
         embedded_graphics::text::Text::new(buf.as_str(), Point::new(0, 5), style)
             .draw(&mut matrix)
             .ok();
@@ -212,7 +220,7 @@ async fn main(spawner: Spawner) {
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     esp_rtos::start(timg0.timer0);
 
-    Timer::after(Duration::from_millis(100)).await;
+    Timer::after(Duration::from_millis(1000)).await;
 
     info!("Embassy initialized!");
     let led = peripherals.GPIO32;
@@ -225,24 +233,40 @@ async fn main(spawner: Spawner) {
 
     let sw_int = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
 
+    static EXECUTOR_CORE_1: StaticCell<InterruptExecutor<2>> = StaticCell::new();
+    let executor_core1 = InterruptExecutor::new(sw_int.software_interrupt2);
+    let executor_core1 = EXECUTOR_CORE_1.init(executor_core1);
+
+    let rtc = esp_hal::rtc_cntl::Rtc::new(peripherals.LPWR);
+    static RTC: StaticCell<esp_hal::rtc_cntl::Rtc> = StaticCell::new();
+    let rtc = RTC.init(rtc);
+
+    let rtc2 = &*rtc;
+
     esp_rtos::start_second_core(
         peripherals.CPU_CTRL,
         sw_int.software_interrupt0,
         sw_int.software_interrupt1,
         app_core_stack,
         move || {
-            info!("Starting matrix task on core 1");
+            let spawner = executor_core1.start(esp_hal::interrupt::Priority::Priority3);
+
+            spawner.spawn(matrix_task(rmt, led, rtc2)).ok();
+
+            /*info!("Starting matrix task on core 1");
             static EXECUTOR: StaticCell<Executor> = StaticCell::new();
             let executor = EXECUTOR.init(Executor::new());
             executor.run(|spawner| {
                 spawner.spawn(matrix_task(rmt, led)).ok();
             });
-            //matrix_blocking(rmt, led);
+            //matrix_blocking(rmt, led);*/
+            loop {}
         },
     );
 
     //spawner.spawn(matrix_task(rmt, led)).ok();
 
+    info!("Waiting 10s before initializing wifi...");
     embassy_time::Timer::after(Duration::from_millis(10000)).await;
     /*
                rx_queue_size: 5,
@@ -302,7 +326,7 @@ async fn main(spawner: Spawner) {
     let (stack, runner) = embassy_net::new(
         wifi_interface,
         config,
-        mk_static!(StackResources<1>, StackResources::<1>::new()),
+        mk_static!(StackResources<3>, StackResources::<3>::new()),
         seed,
     );
 
@@ -325,6 +349,12 @@ async fn main(spawner: Spawner) {
             break;
         }
         Timer::after(Duration::from_millis(500)).await;
+    }
+
+    let date = ntp_request(&stack).await.ok();
+    info!("NTP date: {:?}", date);
+    if let Some(date) = date {
+        rtc2.set_current_time_us(date.and_utc().timestamp_micros() as u64);
     }
 
     loop {
@@ -405,4 +435,106 @@ async fn wifi_connection(mut controller: WifiController<'static>) {
 #[embassy_executor::task]
 async fn net_task(mut runner: embassy_net::Runner<'static, WifiDevice<'static>>) {
     runner.run().await
+}
+
+use embassy_net::{
+    dns::DnsQueryType,
+    udp::{PacketMetadata, UdpSocket},
+    IpEndpoint,
+};
+
+struct UdpBuffers {
+    rx_meta: Box<[PacketMetadata]>,
+    rx_buffer: Box<[u8]>,
+    tx_meta: Box<[PacketMetadata]>,
+    tx_buffer: Box<[u8]>,
+}
+
+impl UdpBuffers {
+    pub fn new() -> Self {
+        Self {
+            rx_meta: Box::new([PacketMetadata::EMPTY; 16]),
+            rx_buffer: Box::new([0; 2048]),
+            tx_meta: Box::new([PacketMetadata::EMPTY; 16]),
+            tx_buffer: Box::new([0; 2048]),
+        }
+    }
+
+    pub fn as_static_mut(
+        &mut self,
+    ) -> (
+        &'static mut [PacketMetadata],
+        &'static mut [u8],
+        &'static mut [PacketMetadata],
+        &'static mut [u8],
+    ) {
+        unsafe {
+            core::mem::transmute((
+                self.rx_meta.as_mut(),
+                self.rx_buffer.as_mut(),
+                self.tx_meta.as_mut(),
+                self.tx_buffer.as_mut(),
+            ))
+        }
+    }
+}
+
+async fn ntp_request<'d>(stack: &'d embassy_net::Stack<'d>) -> Result<chrono::NaiveDateTime, ()> {
+    info!("Prepare NTP request");
+    let mut addrs = stack
+        .dns_query("pl.pool.ntp.org", smoltcp::wire::DnsQueryType::A)
+        .await
+        .unwrap_or_default();
+    let addr = addrs.pop().ok_or(())?;
+    info!("NTP DNS: {:?}", addr);
+
+    let ntp_packet = sntpc::NtpPacket::new();
+    let raw_ntp = sntpc::RawNtpPacket::from(&ntp_packet);
+
+    let mut buffers = UdpBuffers::new();
+
+    let (rx_meta, rx_buffer, tx_meta, tx_buffer) = buffers.as_static_mut();
+
+    let mut socket =
+        embassy_net::udp::UdpSocket::new(*stack, rx_meta, rx_buffer, tx_meta, tx_buffer);
+
+    socket.bind(11770).map_err(|e| ())?;
+    info!("UDP socket bound");
+
+    socket
+        .send_to(&raw_ntp.0, IpEndpoint::new(addr, 123))
+        .await
+        .map_err(|e| ())?;
+    info!("NTP request sent");
+
+    let mut buffer = [0u8; 48];
+
+    socket.recv_from(&mut buffer).await.map_err(|e| ())?;
+
+    let mut raw_ntp = sntpc::RawNtpPacket::default();
+    raw_ntp.0 = buffer;
+
+    let recv_timestamp = embassy_time::Instant::now();
+    let recv_timestamp = sntpc::get_ntp_timestamp(&recv_timestamp);
+
+    let result = sntpc::process_response(ntp_packet.into(), raw_ntp, recv_timestamp);
+
+    match result {
+        Ok(packet) => match packet.to_datetime() {
+            Some(datetime) => {
+                let datetime = datetime.with_timezone(&chrono_tz::Europe::Warsaw);
+                // info!("NTP time received: {:?}", defmt::Debug2Format(&datetime));
+
+                return Ok(datetime.naive_local());
+            }
+            None => {
+                error!("Failed to convert NTP packet to NaiveDateTime");
+            }
+        },
+        Err(e) => {
+            error!("Failed to process NTP response: {:?}", e);
+        }
+    }
+
+    Err(())
 }
