@@ -11,6 +11,7 @@ use alloc::vec;
 use bt_hci::controller::ExternalController;
 use core::fmt::Write;
 use embassy_executor::Spawner;
+use embassy_net::StackResources;
 use embassy_time::{Duration, Timer};
 use embedded_graphics::prelude::*;
 use embedded_graphics::Drawable;
@@ -19,32 +20,42 @@ use esp_hal::clock::CpuClock;
 use esp_hal::gpio::{Level, Output, OutputConfig};
 use esp_hal::interrupt::software::SoftwareInterruptControl;
 use esp_hal::rmt::Rmt;
+use esp_hal::rng::Rng;
 use esp_hal::system::Stack;
 use esp_hal::time::Rate;
 use esp_hal::timer::timg::TimerGroup;
+use esp_hal_smartled::SmartLedsAdapter;
 use esp_hal_smartled::SmartLedsAdapterAsync;
+use esp_radio::{
+    wifi::{ClientConfig, Config, ScanConfig, WifiController, WifiDevice, WifiEvent, WifiStaState},
+    Controller,
+};
 use esp_rtos::embassy::Executor;
 use log::info;
 use smart_leds::SmartLedsWriteAsync;
 use static_cell::StaticCell;
 extern crate alloc;
 
+// When you are okay with using a nightly compiler it's better to use https://docs.rs/static_cell/2.1.0/static_cell/macro.make_static.html
+macro_rules! mk_static {
+    ($t:ty,$val:expr) => {{
+        static STATIC_CELL: static_cell::StaticCell<$t> = static_cell::StaticCell::new();
+        #[deny(unused_attributes)]
+        let x = STATIC_CELL.uninit().write(($val));
+        x
+    }};
+}
+
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
 esp_bootloader_esp_idf::esp_app_desc!();
-
-pub type Matrix = smart_leds_matrix::SmartLedMatrixAsync<
-    SmartLedsAdapterAsync<6400>,
-    smart_leds_matrix::layout::Rectangular<smart_leds_matrix::layout::invert_axis::Tc001>,
-    { 32 * 8 },
->;
 
 #[embassy_executor::task]
 async fn matrix_task(
     rmt: esp_hal::peripherals::RMT<'static>,
     mut led: esp_hal::peripherals::GPIO32<'static>,
 ) {
-    let led = Output::new(led, Level::High, OutputConfig::default());
+    //let led = Output::new(led, Level::High, OutputConfig::default());
     embassy_time::Timer::after(Duration::from_millis(100)).await;
     info!("Rmt initializing...");
     let rmt: Rmt<'_, esp_hal::Async> = {
@@ -75,7 +86,13 @@ async fn matrix_task(
         &embedded_graphics::mono_font::ascii::FONT_4X6,
         embedded_graphics::pixelcolor::Rgb888::BLUE,
     );
+
+    let handle = esp_rtos::CurrentThreadHandle::get();
+    handle.set_priority(30);
+    info!("Matrix task started: {:?}", handle);
+
     matrix.flush_with_gamma().await.ok();
+
     embassy_time::Timer::after(Duration::from_millis(100)).await;
     info!("Starting matrix loop");
     let mut buf = alloc::string::String::new();
@@ -96,7 +113,75 @@ async fn matrix_task(
         let now = embassy_time::Instant::now();
         loop {
             matrix.flush_with_gamma().await.ok();
-            Timer::after(Duration::from_millis(50)).await;
+            Timer::after(Duration::from_millis(10)).await;
+            if embassy_time::Instant::now() - now > Duration::from_millis(1000) {
+                break;
+            }
+        }
+        loops += 1;
+        info!("Loop {}", loops);
+    }
+}
+
+fn matrix_blocking(
+    rmt: esp_hal::peripherals::RMT<'static>,
+    mut led: esp_hal::peripherals::GPIO32<'static>,
+) {
+    //let led = Output::new(led, Level::High, OutputConfig::default());
+    info!("Rmt initializing...");
+    let rmt: Rmt<'_, esp_hal::Blocking> = {
+        let frequency: Rate = { Rate::from_mhz(80) };
+        Rmt::new(rmt, frequency)
+    }
+    .expect("Failed to initialize RMT");
+    info!("Rmt initialized.");
+
+    const NUM_LEDS: usize = 32 * 8;
+    let rmt_channel = rmt.channel0;
+    let rmt_buffer = [0_u32; esp_hal_smartled::buffer_size(NUM_LEDS)];
+    info!("Rmt buffer initialized.");
+
+    let mut led = { SmartLedsAdapter::new(rmt_channel, led, rmt_buffer) };
+    info!("Led adapter initialized.");
+
+    let mut matrix = smart_leds_matrix::SmartLedMatrix::<_, _, { NUM_LEDS }>::new(
+        led,
+        smart_leds_matrix::layout::Rectangular::new_tc001(32, 8),
+    );
+    info!("Matrix initialized.");
+    matrix.set_brightness(32);
+    info!("Matrix brightness set.");
+
+    let style = embedded_graphics::mono_font::MonoTextStyle::new(
+        &embedded_graphics::mono_font::ascii::FONT_4X6,
+        embedded_graphics::pixelcolor::Rgb888::BLUE,
+    );
+
+    info!("Matrix handle checking");
+
+    let handle = esp_rtos::CurrentThreadHandle::get();
+    handle.set_priority(30);
+    info!("Matrix task started: {:?}", handle);
+
+    info!("Starting matrix loop");
+    let mut buf = alloc::string::String::new();
+    let mut loops = 0;
+    loop {
+        info!("alloc: {:?}", esp_alloc::HEAP.stats());
+        buf.clear();
+        embedded_graphics::primitives::Rectangle::new(Point::new(0, 0), Size::new(32, 8))
+            .into_styled(embedded_graphics::primitives::PrimitiveStyle::with_fill(
+                embedded_graphics::pixelcolor::Rgb888::BLACK,
+            ))
+            .draw(&mut matrix)
+            .ok();
+        write!(&mut buf, "RUST {}", loops).ok();
+        embedded_graphics::text::Text::new(buf.as_str(), Point::new(0, 5), style)
+            .draw(&mut matrix)
+            .ok();
+        let now = embassy_time::Instant::now();
+        loop {
+            matrix.flush_with_gamma().ok();
             if embassy_time::Instant::now() - now > Duration::from_millis(1000) {
                 break;
             }
@@ -111,7 +196,7 @@ async fn main(spawner: Spawner) {
     // generator version: 0.5.0
 
     esp_println::logger::init_logger_from_env();
-    info!("Starting up...");
+    info!("Starting up tc001 v3");
 
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
@@ -122,7 +207,6 @@ async fn main(spawner: Spawner) {
     //esp_alloc::heap_allocator!(size: 32 * 1024);
 
     info!("Heap initialized");
-    //COEX needs more RAM - so we've added some more
     esp_alloc::heap_allocator!(#[unsafe(link_section = ".dram2_uninit")] size: 96 * 1024);
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
@@ -131,7 +215,35 @@ async fn main(spawner: Spawner) {
     Timer::after(Duration::from_millis(100)).await;
 
     info!("Embassy initialized!");
-    let wifi_init = esp_radio::init().expect("Failed to initialize WIFI/BLE controller");
+    let led = peripherals.GPIO32;
+    let rmt = peripherals.RMT;
+    static APP_CORE_STACK: StaticCell<Stack<{ 8 * 1024 }>> = StaticCell::new();
+    let app_core_stack = APP_CORE_STACK.init(Stack::new());
+
+    //let handle = esp_rtos::CurrentThreadHandle::get();
+    //handle.set_priority(30);
+
+    let sw_int = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
+
+    esp_rtos::start_second_core(
+        peripherals.CPU_CTRL,
+        sw_int.software_interrupt0,
+        sw_int.software_interrupt1,
+        app_core_stack,
+        move || {
+            info!("Starting matrix task on core 1");
+            static EXECUTOR: StaticCell<Executor> = StaticCell::new();
+            let executor = EXECUTOR.init(Executor::new());
+            executor.run(|spawner| {
+                spawner.spawn(matrix_task(rmt, led)).ok();
+            });
+            //matrix_blocking(rmt, led);
+        },
+    );
+
+    //spawner.spawn(matrix_task(rmt, led)).ok();
+
+    embassy_time::Timer::after(Duration::from_millis(10000)).await;
     /*
                rx_queue_size: 5,
            tx_queue_size: 3,
@@ -144,19 +256,22 @@ async fn main(spawner: Spawner) {
               rx_ba_win: 6,
     */
     let wifi_config = esp_radio::wifi::WifiConfig::default()
-        .with_rx_queue_size(5)
-        .with_tx_queue_size(3)
-        .with_static_rx_buf_num(10)
+        .with_rx_queue_size(2)
+        .with_tx_queue_size(2)
+        .with_static_rx_buf_num(2)
         .with_static_tx_buf_num(0)
-        .with_rx_ba_win(6);
-    let (mut _wifi_controller, _interfaces) =
-        esp_radio::wifi::new(&wifi_init, peripherals.WIFI, wifi_config)
+        .with_rx_ba_win(3);
+
+    let esp_radio_ctrl = &*mk_static!(Controller<'static>, esp_radio::init().unwrap());
+
+    let (mut wifi_controller, interfaces) =
+        esp_radio::wifi::new(&esp_radio_ctrl, peripherals.WIFI, wifi_config)
             .expect("Failed to initialize WIFI controller");
     // find more examples https://github.com/embassy-rs/trouble/tree/main/examples/esp32
-    let ble_config = esp_radio::ble::Config::default();
+    /*let ble_config = esp_radio::ble::Config::default();
     let transport =
-        esp_radio::ble::controller::BleConnector::new(&wifi_init, peripherals.BT, ble_config);
-    let _ble_controller = ExternalController::<_, 5>::new(transport);
+        esp_radio::ble::controller::BleConnector::new(&esp_radio_ctrl, peripherals.BT, ble_config);
+    let _ble_controller = ExternalController::<_, 5>::new(transport);*/
 
     // TODO: Spawn some tasks
     let _ = spawner;
@@ -176,28 +291,41 @@ async fn main(spawner: Spawner) {
         smart_leds_matrix::layout::Rectangular::new_tc001(32, 8),
     );
     matrix.set_brightness(32);*/
-    let led = peripherals.GPIO32;
-    let rmt = peripherals.RMT;
-    static APP_CORE_STACK: StaticCell<Stack<{ 8 * 1024 }>> = StaticCell::new();
-    let app_core_stack = APP_CORE_STACK.init(Stack::new());
 
-    let sw_int = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
+    let wifi_interface = interfaces.sta;
 
-    esp_rtos::start_second_core(
-        peripherals.CPU_CTRL,
-        sw_int.software_interrupt0,
-        sw_int.software_interrupt1,
-        app_core_stack,
-        move || {
-            static EXECUTOR: StaticCell<Executor> = StaticCell::new();
-            let executor = EXECUTOR.init(Executor::new());
-            executor.run(|spawner| {
-                spawner.spawn(matrix_task(rmt, led)).ok();
-            });
-        },
+    let config = embassy_net::Config::dhcpv4(Default::default());
+
+    let rng = Rng::new();
+    let seed = (rng.random() as u64) << 32 | rng.random() as u64;
+
+    let (stack, runner) = embassy_net::new(
+        wifi_interface,
+        config,
+        mk_static!(StackResources<1>, StackResources::<1>::new()),
+        seed,
     );
 
     //spawner.spawn(matrix_task(rmt, led)).ok();
+
+    spawner.spawn(wifi_connection(wifi_controller)).ok();
+    spawner.spawn(net_task(runner)).ok();
+
+    loop {
+        if stack.is_link_up() {
+            break;
+        }
+        Timer::after(Duration::from_millis(500)).await;
+    }
+
+    info!("Waiting to get IP address...");
+    loop {
+        if let Some(config) = stack.config_v4() {
+            info!("Got IP: {}", config.address);
+            break;
+        }
+        Timer::after(Duration::from_millis(500)).await;
+    }
 
     loop {
         info!("Looping...");
@@ -223,4 +351,58 @@ async fn main(spawner: Spawner) {
         }*/
     }
     // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/esp-hal-v1.0.0-rc.0/examples/src/bin
+}
+
+const SSID: &str = dotenvy_macro::dotenv!("WIFI_SSID");
+const PASSWORD: &str = dotenvy_macro::dotenv!("WIFI_PASSWORD");
+
+#[embassy_executor::task]
+async fn wifi_connection(mut controller: WifiController<'static>) {
+    info!("start connection task");
+    info!("Device capabilities: {:?}", controller.capabilities());
+    loop {
+        match esp_radio::wifi::sta_state() {
+            WifiStaState::Connected => {
+                // wait until we're no longer connected
+                controller.wait_for_event(WifiEvent::StaDisconnected).await;
+                Timer::after(Duration::from_millis(5000)).await
+            }
+            _ => {}
+        }
+        if !matches!(controller.is_started(), Ok(true)) {
+            let client_config = Config::Client(
+                ClientConfig::default()
+                    .with_ssid(SSID.into())
+                    .with_password(PASSWORD.into()),
+            );
+            controller.set_config(&client_config).unwrap();
+            info!("Starting wifi");
+            controller.start_async().await.unwrap();
+            info!("Wifi started!");
+
+            info!("Scan");
+            let scan_config = ScanConfig::default().with_max(10);
+            let result = controller
+                .scan_with_config_async(scan_config)
+                .await
+                .unwrap();
+            for ap in result {
+                info!("{:?}", ap);
+            }
+        }
+        info!("About to connect...");
+
+        match controller.connect_async().await {
+            Ok(_) => info!("Wifi connected!"),
+            Err(e) => {
+                info!("Failed to connect to wifi: {e:?}");
+                Timer::after(Duration::from_millis(5000)).await
+            }
+        }
+    }
+}
+
+#[embassy_executor::task]
+async fn net_task(mut runner: embassy_net::Runner<'static, WifiDevice<'static>>) {
+    runner.run().await
 }

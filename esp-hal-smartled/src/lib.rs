@@ -183,14 +183,14 @@ macro_rules! smartLedBuffer {
 
 /// Adapter taking an RMT channel and a specific pin and providing RGB LED
 /// interaction functionality using the `smart-leds` crate
-pub struct SmartLedsAdapter<const BUFFER_SIZE: usize, Color = Grb<u8>> {
-    channel: Option<Channel<Blocking, Tx>>,
+pub struct SmartLedsAdapter<'a, const BUFFER_SIZE: usize, Color = Grb<u8>> {
+    channel: Option<Channel<'a, Blocking, Tx>>,
     rmt_buffer: [u32; BUFFER_SIZE],
     pulses: (PulseCode, PulseCode),
     color: PhantomData<Color>,
 }
 
-impl<'d, const BUFFER_SIZE: usize> SmartLedsAdapter<BUFFER_SIZE, Grb<u8>> {
+impl<'d, const BUFFER_SIZE: usize> SmartLedsAdapter<'d, BUFFER_SIZE, Grb<u8>> {
     /// Create a new adapter object that drives the pin using the RMT channel.
     pub fn new<C, O>(channel: C, pin: O, rmt_buffer: [u32; BUFFER_SIZE]) -> Self
     where
@@ -201,7 +201,7 @@ impl<'d, const BUFFER_SIZE: usize> SmartLedsAdapter<BUFFER_SIZE, Grb<u8>> {
     }
 }
 
-impl<'d, const BUFFER_SIZE: usize, Color> SmartLedsAdapter<BUFFER_SIZE, Color>
+impl<'d, const BUFFER_SIZE: usize, Color> SmartLedsAdapter<'d, BUFFER_SIZE, Color>
 where
     Color: rgb::ComponentSlice<u8>,
 {
@@ -210,7 +210,7 @@ where
         channel: C,
         pin: O,
         rmt_buffer: [u32; BUFFER_SIZE],
-    ) -> SmartLedsAdapter<BUFFER_SIZE, Color>
+    ) -> SmartLedsAdapter<'d, BUFFER_SIZE, Color>
     where
         O: PeripheralOutput<'d>,
         C: TxChannelCreator<'d, Blocking>,
@@ -229,7 +229,8 @@ where
     }
 }
 
-impl<const BUFFER_SIZE: usize, Color> SmartLedsWrite for SmartLedsAdapter<BUFFER_SIZE, Color>
+impl<'d, const BUFFER_SIZE: usize, Color> SmartLedsWrite
+    for SmartLedsAdapter<'d, BUFFER_SIZE, Color>
 where
     Color: rgb::ComponentSlice<u8>,
 {
@@ -300,14 +301,14 @@ pub const fn buffer_size_async_rgbw(num_leds: usize) -> usize {
 
 /// Adapter taking an RMT channel and a specific pin and providing RGB LED
 /// interaction functionality.
-pub struct SmartLedsAdapterAsync<const BUFFER_SIZE: usize, Color = Grb<u8>> {
-    channel: Channel<Async, Tx>,
+pub struct SmartLedsAdapterAsync<'a, const BUFFER_SIZE: usize, Color = Grb<u8>> {
+    channel: Channel<'a, Async, Tx>,
     rmt_buffer: [u32; BUFFER_SIZE],
     pulses: (PulseCode, PulseCode),
     color: PhantomData<Color>,
 }
 
-impl<'d, const BUFFER_SIZE: usize> SmartLedsAdapterAsync<BUFFER_SIZE, Grb<u8>> {
+impl<'d, const BUFFER_SIZE: usize> SmartLedsAdapterAsync<'d, BUFFER_SIZE, Grb<u8>> {
     /// Create a new adapter object that drives the pin using the RMT channel.
     pub fn new<C, O>(channel: C, pin: O, rmt_buffer: [u32; BUFFER_SIZE]) -> Self
     where
@@ -318,7 +319,7 @@ impl<'d, const BUFFER_SIZE: usize> SmartLedsAdapterAsync<BUFFER_SIZE, Grb<u8>> {
     }
 }
 
-impl<'d, const BUFFER_SIZE: usize, Color> SmartLedsAdapterAsync<BUFFER_SIZE, Color>
+impl<'d, const BUFFER_SIZE: usize, Color> SmartLedsAdapterAsync<'d, BUFFER_SIZE, Color>
 where
     Color: rgb::ComponentSlice<u8>,
 {
@@ -327,7 +328,7 @@ where
         channel: C,
         pin: O,
         rmt_buffer: [u32; BUFFER_SIZE],
-    ) -> SmartLedsAdapterAsync<BUFFER_SIZE, Color>
+    ) -> SmartLedsAdapterAsync<'d, BUFFER_SIZE, Color>
     where
         O: PeripheralOutput<'d>,
         C: TxChannelCreator<'d, Async>,
@@ -375,8 +376,8 @@ where
     }
 }
 
-impl<const BUFFER_SIZE: usize, Color> SmartLedsWriteAsync
-    for SmartLedsAdapterAsync<BUFFER_SIZE, Color>
+impl<'a, const BUFFER_SIZE: usize, Color> SmartLedsWriteAsync
+    for SmartLedsAdapterAsync<'a, BUFFER_SIZE, Color>
 where
     Color: rgb::ComponentSlice<u8>,
 {
