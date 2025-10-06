@@ -850,6 +850,7 @@ dependencies = [
  "esp-metadata-generated",
  "esp-sync",
  "esp-wifi-sys",
+ "log",
 ]
 
 [[package]]
