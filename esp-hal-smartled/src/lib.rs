@@ -101,7 +101,8 @@ fn led_config() -> TxChannelConfig {
         .with_clk_divider(1)
         .with_idle_output_level(Level::Low)
         .with_carrier_modulation(false)
-        .with_idle_output(true)
+        .with_idle_output(false)
+        .with_memsize(8)
 }
 
 fn convert_to_pulses(

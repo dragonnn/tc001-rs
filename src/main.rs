@@ -121,7 +121,7 @@ async fn matrix_task(
         let now = embassy_time::Instant::now();
         loop {
             matrix.flush_with_gamma().await.ok();
-            Timer::after(Duration::from_millis(10)).await;
+            Timer::after(Duration::from_millis(50)).await;
             if embassy_time::Instant::now() - now > Duration::from_millis(1000) {
                 break;
             }
