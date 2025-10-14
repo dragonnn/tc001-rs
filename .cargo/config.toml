@@ -2,9 +2,9 @@
 runner = "./flash.sh"
 
 [env]
-ESP_LOG="info"
+ESP_LOG="trace"
 ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM="true"
-#ESP_RTOS_CONFIG_TICK_RATE_HZ="100"
+#ESP_RTOS_CONFIG_TICK_RATE_HZ="50"
 
 [build]
 rustflags = [

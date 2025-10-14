@@ -18,6 +18,7 @@ use embedded_graphics::prelude::*;
 use embedded_graphics::Drawable;
 use esp_backtrace as _;
 use esp_hal::clock::CpuClock;
+use esp_hal::delay::Delay;
 use esp_hal::gpio::{Level, Output, OutputConfig};
 use esp_hal::interrupt::software::SoftwareInterruptControl;
 use esp_hal::rmt::Rmt;
@@ -27,6 +28,7 @@ use esp_hal::time::Rate;
 use esp_hal::timer::timg::TimerGroup;
 use esp_hal_smartled::SmartLedsAdapter;
 use esp_hal_smartled::SmartLedsAdapterAsync;
+use esp_radio::wifi::ModeConfig;
 use esp_radio::{
     wifi::{ClientConfig, Config, ScanConfig, WifiController, WifiDevice, WifiEvent, WifiStaState},
     Controller,
@@ -165,12 +167,6 @@ fn matrix_blocking(
         embedded_graphics::pixelcolor::Rgb888::BLUE,
     );
 
-    info!("Matrix handle checking");
-
-    let handle = esp_rtos::CurrentThreadHandle::get();
-    handle.set_priority(30);
-    info!("Matrix task started: {:?}", handle);
-
     info!("Starting matrix loop");
     let mut buf = alloc::string::String::new();
     let mut loops = 0;
@@ -225,7 +221,7 @@ async fn main(spawner: Spawner) {
     info!("Embassy initialized!");
     let led = peripherals.GPIO32;
     let rmt = peripherals.RMT;
-    static APP_CORE_STACK: StaticCell<Stack<{ 8 * 1024 }>> = StaticCell::new();
+    static APP_CORE_STACK: StaticCell<Stack<{ 16 * 1024 }>> = StaticCell::new();
     let app_core_stack = APP_CORE_STACK.init(Stack::new());
 
     //let handle = esp_rtos::CurrentThreadHandle::get();
@@ -233,9 +229,9 @@ async fn main(spawner: Spawner) {
 
     let sw_int = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
 
-    static EXECUTOR_CORE_1: StaticCell<InterruptExecutor<2>> = StaticCell::new();
-    let executor_core1 = InterruptExecutor::new(sw_int.software_interrupt2);
-    let executor_core1 = EXECUTOR_CORE_1.init(executor_core1);
+    //static EXECUTOR_CORE_1: StaticCell<InterruptExecutor<2>> = StaticCell::new();
+    //let executor_core1 = InterruptExecutor::new(sw_int.software_interrupt2);
+    //let executor_core1 = EXECUTOR_CORE_1.init(executor_core1);
 
     let rtc = esp_hal::rtc_cntl::Rtc::new(peripherals.LPWR);
     static RTC: StaticCell<esp_hal::rtc_cntl::Rtc> = StaticCell::new();
@@ -243,24 +239,31 @@ async fn main(spawner: Spawner) {
 
     let rtc2 = &*rtc;
 
+    info!("Starting second core...");
     esp_rtos::start_second_core(
         peripherals.CPU_CTRL,
         sw_int.software_interrupt0,
         sw_int.software_interrupt1,
         app_core_stack,
         move || {
-            let spawner = executor_core1.start(esp_hal::interrupt::Priority::Priority3);
+            //let spawner = executor_core1.start(esp_hal::interrupt::Priority::Priority3);
 
-            spawner.spawn(matrix_task(rmt, led, rtc2)).ok();
+            //spawner.spawn(matrix_task(rmt, led, rtc2)).ok();
 
             /*info!("Starting matrix task on core 1");
             static EXECUTOR: StaticCell<Executor> = StaticCell::new();
             let executor = EXECUTOR.init(Executor::new());
             executor.run(|spawner| {
                 spawner.spawn(matrix_task(rmt, led)).ok();
-            });
-            //matrix_blocking(rmt, led);*/
-            loop {}
+            });*/
+
+            info!("Core 1 starting...");
+            Delay::new().delay_millis(1000);
+            info!("Core 1 rmt...");
+            Delay::new().delay_millis(100);
+
+            //enabling this line causes the program to stuck
+            matrix_blocking(rmt, led);
         },
     );
 
@@ -279,7 +282,7 @@ async fn main(spawner: Spawner) {
            dynamic_tx_buf_num: 32,
               rx_ba_win: 6,
     */
-    let wifi_config = esp_radio::wifi::WifiConfig::default()
+    let wifi_config = esp_radio::wifi::Config::default()
         .with_rx_queue_size(2)
         .with_tx_queue_size(2)
         .with_static_rx_buf_num(2)
@@ -400,7 +403,7 @@ async fn wifi_connection(mut controller: WifiController<'static>) {
             _ => {}
         }
         if !matches!(controller.is_started(), Ok(true)) {
-            let client_config = Config::Client(
+            let client_config = ModeConfig::Client(
                 ClientConfig::default()
                     .with_ssid(SSID.into())
                     .with_password(PASSWORD.into()),
