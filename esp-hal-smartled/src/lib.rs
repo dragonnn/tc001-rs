@@ -101,8 +101,8 @@ fn led_config() -> TxChannelConfig {
         .with_clk_divider(1)
         .with_idle_output_level(Level::Low)
         .with_carrier_modulation(false)
-        .with_idle_output(false)
-        .with_memsize(8)
+        .with_idle_output(true)
+        .with_memsize(2)
 }
 
 fn convert_to_pulses(
@@ -216,7 +216,7 @@ where
         O: PeripheralOutput<'d>,
         C: TxChannelCreator<'d, Blocking>,
     {
-        let channel = channel.configure_tx(pin, led_config()).unwrap();
+        let channel = channel.configure_tx(pin, &led_config()).ok().unwrap();
 
         // Assume the RMT peripheral is set up to use the APB clock
         let src_clock = Clocks::get().apb_clock.as_mhz();
@@ -261,7 +261,11 @@ where
 
         // Perform the actual RMT operation. We use the u32 values here right away.
         let channel = self.channel.take().unwrap();
-        match channel.transmit(self.rmt_buffer)?.wait() {
+        match channel
+            .transmit(self.rmt_buffer)
+            .map_err(|e| LedAdapterError::BufferSizeExceeded)?
+            .wait()
+        {
             Ok(chan) => {
                 self.channel = Some(chan);
                 Ok(())
@@ -304,14 +308,14 @@ pub const fn buffer_size_async_rgbw(num_leds: usize) -> usize {
 /// interaction functionality.
 pub struct SmartLedsAdapterAsync<'a, const BUFFER_SIZE: usize, Color = Grb<u8>> {
     channel: Channel<'a, Async, Tx>,
-    rmt_buffer: [u32; BUFFER_SIZE],
+    rmt_buffer: &'a mut [u32; BUFFER_SIZE],
     pulses: (PulseCode, PulseCode),
     color: PhantomData<Color>,
 }
 
 impl<'d, const BUFFER_SIZE: usize> SmartLedsAdapterAsync<'d, BUFFER_SIZE, Grb<u8>> {
     /// Create a new adapter object that drives the pin using the RMT channel.
-    pub fn new<C, O>(channel: C, pin: O, rmt_buffer: [u32; BUFFER_SIZE]) -> Self
+    pub fn new<C, O>(channel: C, pin: O, rmt_buffer: &'d mut [u32; BUFFER_SIZE]) -> Self
     where
         O: PeripheralOutput<'d>,
         C: TxChannelCreator<'d, Async>,
@@ -328,13 +332,13 @@ where
     pub fn new_with_color<C, O>(
         channel: C,
         pin: O,
-        rmt_buffer: [u32; BUFFER_SIZE],
+        rmt_buffer: &'d mut [u32; BUFFER_SIZE],
     ) -> SmartLedsAdapterAsync<'d, BUFFER_SIZE, Color>
     where
         O: PeripheralOutput<'d>,
         C: TxChannelCreator<'d, Async>,
     {
-        let channel = channel.configure_tx(pin, led_config()).unwrap();
+        let channel = channel.configure_tx(pin, &led_config()).ok().unwrap();
 
         // Assume the RMT peripheral is set up to use the APB clock
         let src_clock = Clocks::get().apb_clock.as_mhz();

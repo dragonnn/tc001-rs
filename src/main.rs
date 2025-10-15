@@ -1,4 +1,6 @@
 #![feature(impl_trait_in_assoc_type)]
+#![feature(slice_as_array)]
+#![feature(new_zeroed_alloc)]
 #![no_std]
 #![no_main]
 #![deny(
@@ -63,22 +65,26 @@ async fn matrix_task(
     mut led: esp_hal::peripherals::GPIO32<'static>,
     rtc: &'static esp_hal::rtc_cntl::Rtc<'static>,
 ) {
-    //let led = Output::new(led, Level::High, OutputConfig::default());
+    let led = Output::new(led, Level::High, OutputConfig::default());
     embassy_time::Timer::after(Duration::from_millis(100)).await;
-    info!("Rmt initializing...");
+    info!("async Rmt initializing...");
     let rmt: Rmt<'_, esp_hal::Async> = {
         let frequency: Rate = { Rate::from_mhz(80) };
         Rmt::new(rmt, frequency)
     }
     .expect("Failed to initialize RMT")
     .into_async();
-    info!("Rmt initialized.");
+    info!("async Rmt initialized.");
 
     const NUM_LEDS: usize = 32 * 8;
+    const BUFFER_SIZE: usize = esp_hal_smartled::buffer_size_async(NUM_LEDS);
     let rmt_channel = rmt.channel0;
-    let rmt_buffer = [0_u32; esp_hal_smartled::buffer_size_async(NUM_LEDS)];
+    //let mut rmt_buffer = [0_u32; esp_hal_smartled::buffer_size_async(NUM_LEDS)];
+    let rmt_buffer = alloc::boxed::Box::<[u32; BUFFER_SIZE]>::new_zeroed();
+    let mut rmt_buffer = unsafe { rmt_buffer.assume_init() };
 
-    let mut led = { SmartLedsAdapterAsync::new(rmt_channel, led, rmt_buffer) };
+    let mut led: SmartLedsAdapterAsync<'_, BUFFER_SIZE> =
+        { SmartLedsAdapterAsync::new(rmt_channel, led, rmt_buffer.as_mut_array().unwrap()) };
 
     let mut matrix: smart_leds_matrix::SmartLedMatrixAsync<
         SmartLedsAdapterAsync<_>,
@@ -148,11 +154,16 @@ fn matrix_blocking(
     info!("Rmt initialized.");
 
     const NUM_LEDS: usize = 32 * 8;
+    const BUFFER_SIZE: usize = esp_hal_smartled::buffer_size_async(NUM_LEDS);
     let rmt_channel = rmt.channel0;
-    let mut rmt_buffer = [0_u32; esp_hal_smartled::buffer_size(NUM_LEDS)];
-    info!("Rmt buffer initialized.");
+    //let mut rmt_buffer = [0_u32; esp_hal_smartled::buffer_size_async(NUM_LEDS)];
+    let rmt_buffer = alloc::boxed::Box::<[u32; BUFFER_SIZE]>::new_zeroed();
+    let mut rmt_buffer = unsafe { rmt_buffer.assume_init() };
 
-    let mut led = { SmartLedsAdapter::new(rmt_channel, led, &mut rmt_buffer) };
+    info!("Rmt buffer initialized: {:?}", rmt_buffer.len());
+
+    let mut led: SmartLedsAdapter<'_, BUFFER_SIZE> =
+        { SmartLedsAdapter::new(rmt_channel, led, rmt_buffer.as_mut_array().unwrap()) };
     info!("Led adapter initialized.");
 
     let mut matrix = smart_leds_matrix::SmartLedMatrix::<_, _, { NUM_LEDS }>::new(
@@ -168,11 +179,15 @@ fn matrix_blocking(
         embedded_graphics::pixelcolor::Rgb888::BLUE,
     );
 
+    //let handle = esp_rtos::CurrentThreadHandle::get();
+    //handle.set_priority(31);
+    //info!("Matrix task started: {:?}", handle);
+
+    matrix.flush_with_gamma().ok();
+
     info!("Starting matrix loop");
     let mut buf = alloc::string::String::new();
-    let mut loops = 0;
     loop {
-        info!("alloc: {:?}", esp_alloc::HEAP.stats());
         buf.clear();
         embedded_graphics::primitives::Rectangle::new(Point::new(0, 0), Size::new(32, 8))
             .into_styled(embedded_graphics::primitives::PrimitiveStyle::with_fill(
@@ -183,6 +198,7 @@ fn matrix_blocking(
         let now = rtc.current_time_us();
         let now = chrono::NaiveDateTime::from_timestamp_micros(now as i64).unwrap();
         write!(&mut buf, "{}", now.time()).ok();
+        info!("Time: {}", buf);
         embedded_graphics::text::Text::new(buf.as_str(), Point::new(0, 5), style)
             .draw(&mut matrix)
             .ok();
@@ -190,12 +206,10 @@ fn matrix_blocking(
         loop {
             matrix.flush_with_gamma().ok();
             Delay::new().delay_millis(50);
-            if embassy_time::Instant::now() - now > Duration::from_millis(1000) {
+            if embassy_time::Instant::now() - now >= Duration::from_millis(250) {
                 break;
             }
         }
-        loops += 1;
-        info!("Loop {}", loops);
     }
 }
 
@@ -225,7 +239,7 @@ async fn main(spawner: Spawner) {
     info!("Embassy initialized!");
     let led = peripherals.GPIO32;
     let rmt = peripherals.RMT;
-    static APP_CORE_STACK: StaticCell<Stack<{ 32 * 1024 }>> = StaticCell::new();
+    static APP_CORE_STACK: StaticCell<Stack<{ 8 * 1024 }>> = StaticCell::new();
     let app_core_stack = APP_CORE_STACK.init(Stack::new());
 
     //let handle = esp_rtos::CurrentThreadHandle::get();
@@ -233,16 +247,15 @@ async fn main(spawner: Spawner) {
 
     let sw_int = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
 
-    //static EXECUTOR_CORE_1: StaticCell<InterruptExecutor<2>> = StaticCell::new();
-    //let executor_core1 = InterruptExecutor::new(sw_int.software_interrupt2);
-    //let executor_core1 = EXECUTOR_CORE_1.init(executor_core1);
+    static EXECUTOR_CORE_1: StaticCell<InterruptExecutor<2>> = StaticCell::new();
+    let executor_core1 = InterruptExecutor::new(sw_int.software_interrupt2);
+    let executor_core1 = EXECUTOR_CORE_1.init(executor_core1);
 
     let rtc = esp_hal::rtc_cntl::Rtc::new(peripherals.LPWR);
     static RTC: StaticCell<esp_hal::rtc_cntl::Rtc> = StaticCell::new();
     let rtc = RTC.init(rtc);
 
     let rtc2 = &*rtc;
-    embassy_time::Timer::after(Duration::from_secs(5)).await;
     info!("Starting second core...");
     esp_rtos::start_second_core(
         peripherals.CPU_CTRL,
@@ -253,19 +266,7 @@ async fn main(spawner: Spawner) {
             //let spawner = executor_core1.start(esp_hal::interrupt::Priority::Priority3);
 
             //spawner.spawn(matrix_task(rmt, led, rtc2)).ok();
-
-            /*info!("Starting matrix task on core 1");
-            static EXECUTOR: StaticCell<Executor> = StaticCell::new();
-            let executor = EXECUTOR.init(Executor::new());
-            executor.run(|spawner| {
-                spawner.spawn(matrix_task(rmt, led)).ok();
-            });*/
-
-            info!("Core 1 starting...");
-            Delay::new().delay_millis(1000);
-            info!("Core 1 rmt...");
-
-            //enabling this line causes the program to stuck
+            //loop {}
             matrix_blocking(rmt, led, rtc2);
         },
     );
