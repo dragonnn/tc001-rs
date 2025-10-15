@@ -136,6 +136,7 @@ async fn matrix_task(
 fn matrix_blocking(
     rmt: esp_hal::peripherals::RMT<'static>,
     mut led: esp_hal::peripherals::GPIO32<'static>,
+    rtc: &'static esp_hal::rtc_cntl::Rtc<'static>,
 ) {
     //let led = Output::new(led, Level::High, OutputConfig::default());
     info!("Rmt initializing...");
@@ -148,10 +149,10 @@ fn matrix_blocking(
 
     const NUM_LEDS: usize = 32 * 8;
     let rmt_channel = rmt.channel0;
-    let rmt_buffer = [0_u32; esp_hal_smartled::buffer_size(NUM_LEDS)];
+    let mut rmt_buffer = [0_u32; esp_hal_smartled::buffer_size(NUM_LEDS)];
     info!("Rmt buffer initialized.");
 
-    let mut led = { SmartLedsAdapter::new(rmt_channel, led, rmt_buffer) };
+    let mut led = { SmartLedsAdapter::new(rmt_channel, led, &mut rmt_buffer) };
     info!("Led adapter initialized.");
 
     let mut matrix = smart_leds_matrix::SmartLedMatrix::<_, _, { NUM_LEDS }>::new(
@@ -179,13 +180,16 @@ fn matrix_blocking(
             ))
             .draw(&mut matrix)
             .ok();
-        write!(&mut buf, "RUST {}", loops).ok();
+        let now = rtc.current_time_us();
+        let now = chrono::NaiveDateTime::from_timestamp_micros(now as i64).unwrap();
+        write!(&mut buf, "{}", now.time()).ok();
         embedded_graphics::text::Text::new(buf.as_str(), Point::new(0, 5), style)
             .draw(&mut matrix)
             .ok();
         let now = embassy_time::Instant::now();
         loop {
             matrix.flush_with_gamma().ok();
+            Delay::new().delay_millis(50);
             if embassy_time::Instant::now() - now > Duration::from_millis(1000) {
                 break;
             }
@@ -221,7 +225,7 @@ async fn main(spawner: Spawner) {
     info!("Embassy initialized!");
     let led = peripherals.GPIO32;
     let rmt = peripherals.RMT;
-    static APP_CORE_STACK: StaticCell<Stack<{ 16 * 1024 }>> = StaticCell::new();
+    static APP_CORE_STACK: StaticCell<Stack<{ 32 * 1024 }>> = StaticCell::new();
     let app_core_stack = APP_CORE_STACK.init(Stack::new());
 
     //let handle = esp_rtos::CurrentThreadHandle::get();
@@ -238,7 +242,7 @@ async fn main(spawner: Spawner) {
     let rtc = RTC.init(rtc);
 
     let rtc2 = &*rtc;
-
+    embassy_time::Timer::after(Duration::from_secs(5)).await;
     info!("Starting second core...");
     esp_rtos::start_second_core(
         peripherals.CPU_CTRL,
@@ -260,17 +264,16 @@ async fn main(spawner: Spawner) {
             info!("Core 1 starting...");
             Delay::new().delay_millis(1000);
             info!("Core 1 rmt...");
-            Delay::new().delay_millis(100);
 
             //enabling this line causes the program to stuck
-            matrix_blocking(rmt, led);
+            matrix_blocking(rmt, led, rtc2);
         },
     );
 
     //spawner.spawn(matrix_task(rmt, led)).ok();
 
     info!("Waiting 10s before initializing wifi...");
-    embassy_time::Timer::after(Duration::from_millis(10000)).await;
+    embassy_time::Timer::after(Duration::from_secs(20)).await;
     /*
                rx_queue_size: 5,
            tx_queue_size: 3,

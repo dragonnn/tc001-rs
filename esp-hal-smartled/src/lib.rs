@@ -186,14 +186,14 @@ macro_rules! smartLedBuffer {
 /// interaction functionality using the `smart-leds` crate
 pub struct SmartLedsAdapter<'a, const BUFFER_SIZE: usize, Color = Grb<u8>> {
     channel: Option<Channel<'a, Blocking, Tx>>,
-    rmt_buffer: [u32; BUFFER_SIZE],
+    rmt_buffer: &'a mut [u32; BUFFER_SIZE],
     pulses: (PulseCode, PulseCode),
     color: PhantomData<Color>,
 }
 
 impl<'d, const BUFFER_SIZE: usize> SmartLedsAdapter<'d, BUFFER_SIZE, Grb<u8>> {
     /// Create a new adapter object that drives the pin using the RMT channel.
-    pub fn new<C, O>(channel: C, pin: O, rmt_buffer: [u32; BUFFER_SIZE]) -> Self
+    pub fn new<C, O>(channel: C, pin: O, rmt_buffer: &'d mut [u32; BUFFER_SIZE]) -> Self
     where
         O: PeripheralOutput<'d>,
         C: TxChannelCreator<'d, Blocking>,
@@ -210,7 +210,7 @@ where
     pub fn new_with_color<C, O>(
         channel: C,
         pin: O,
-        rmt_buffer: [u32; BUFFER_SIZE],
+        rmt_buffer: &'d mut [u32; BUFFER_SIZE],
     ) -> SmartLedsAdapter<'d, BUFFER_SIZE, Color>
     where
         O: PeripheralOutput<'d>,
@@ -261,7 +261,7 @@ where
 
         // Perform the actual RMT operation. We use the u32 values here right away.
         let channel = self.channel.take().unwrap();
-        match channel.transmit(&self.rmt_buffer)?.wait() {
+        match channel.transmit(self.rmt_buffer)?.wait() {
             Ok(chan) => {
                 self.channel = Some(chan);
                 Ok(())
