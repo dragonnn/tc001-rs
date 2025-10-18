@@ -1,5 +1,5 @@
 use embassy_net::IpEndpoint;
-use embassy_time::Instant;
+use embassy_time::{with_timeout, Duration, Instant};
 
 use crate::udp::UdpBuffers;
 
@@ -61,8 +61,8 @@ pub async fn ntp_task(stack: embassy_net::Stack<'static>, rtc: &'static esp_hal:
     let mut last_ntp_date = None;
     let mut now = Instant::now();
     loop {
-        match ntp_request(stack.clone()).await {
-            Ok(date) => {
+        match with_timeout(Duration::from_secs(5), ntp_request(stack.clone())).await {
+            Ok(Ok(date)) => {
                 info!("NTP date: {:?}", date);
                 let rtc_now = chrono::NaiveDateTime::from_timestamp_micros(rtc.current_time_us() as i64).unwrap();
                 let rtc_delta = date.signed_duration_since(rtc_now);
@@ -84,6 +84,9 @@ pub async fn ntp_task(stack: embassy_net::Stack<'static>, rtc: &'static esp_hal:
                 last_ntp_date = Some(date);
             }
             Err(_) => {
+                error!("NTP request timed out");
+            }
+            Ok(Err(_)) => {
                 error!("NTP request failed");
             }
         }

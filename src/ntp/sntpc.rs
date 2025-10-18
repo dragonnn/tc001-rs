@@ -56,14 +56,10 @@ pub(crate) struct NtpTimestamp {
 impl From<u64> for NtpTimestamp {
     #[allow(clippy::cast_possible_wrap)]
     fn from(v: u64) -> Self {
-        let seconds =
-            (((v & SECONDS_MASK) >> 32) - u64::from(NtpPacket::NTP_TIMESTAMP_DELTA)) as i64;
+        let seconds = (((v & SECONDS_MASK) >> 32) - u64::from(NtpPacket::NTP_TIMESTAMP_DELTA)) as i64;
         let microseconds = (v & SECONDS_FRAC_MASK) as i64;
 
-        NtpTimestamp {
-            seconds,
-            seconds_fraction: microseconds,
-        }
+        NtpTimestamp { seconds, seconds_fraction: microseconds }
     }
 }
 
@@ -140,25 +136,11 @@ impl NtpResult {
     /// * `stratum` - integer indicating the stratum (level of server's hierarchy to stratum 0 - "reference clock")
     /// * `precision` - an exponent of two, where the resulting value is the precision of the system clock in seconds
     #[must_use]
-    pub fn new(
-        seconds: u32,
-        seconds_fraction: u32,
-        roundtrip: u64,
-        offset: i64,
-        stratum: u8,
-        precision: i8,
-    ) -> Self {
+    pub fn new(seconds: u32, seconds_fraction: u32, roundtrip: u64, offset: i64, stratum: u8, precision: i8) -> Self {
         let seconds = seconds + seconds_fraction / u32::MAX;
         let seconds_fraction = seconds_fraction % u32::MAX;
 
-        NtpResult {
-            seconds,
-            seconds_fraction,
-            roundtrip,
-            offset,
-            stratum,
-            precision,
-        }
+        NtpResult { seconds, seconds_fraction, roundtrip, offset, stratum, precision }
     }
     /// Returns number of seconds reported by an NTP server
     #[must_use]
@@ -214,8 +196,6 @@ impl NtpPacket {
         let now = Instant::now();
         let tx_timestamp = get_ntp_timestamp(&now);
 
-        info!("NtpPacket::new(tx_timestamp: {})", tx_timestamp);
-
         NtpPacket {
             li_vn_mode: NtpPacket::SNTP_CLIENT_MODE | NtpPacket::SNTP_VERSION,
             stratum: 0,
@@ -242,10 +222,7 @@ pub struct SendRequestResult {
 
 impl From<NtpPacket> for SendRequestResult {
     fn from(ntp_packet: NtpPacket) -> Self {
-        SendRequestResult {
-            originate_timestamp: ntp_packet.tx_timestamp,
-            version: ntp_packet.li_vn_mode,
-        }
+        SendRequestResult { originate_timestamp: ntp_packet.tx_timestamp, version: ntp_packet.li_vn_mode }
     }
 }
 
@@ -342,12 +319,7 @@ impl From<&NtpPacket> for RawNtpPacket {
     }
 }
 
-#[allow(
-    clippy::cast_possible_truncation,
-    clippy::cast_sign_loss,
-    clippy::cast_possible_wrap,
-    private_interfaces
-)]
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss, clippy::cast_possible_wrap, private_interfaces)]
 pub fn process_response(
     send_req_result: SendRequestResult,
     resp: RawNtpPacket,
@@ -403,10 +375,7 @@ pub fn process_response(
     let timestamp = NtpTimestamp::from(packet.tx_timestamp);
 
     #[cfg(feature = "defmt")]
-    debug!(
-        "Roundtrip delay: {} {}. Offset: {} {}",
-        roundtrip, units, offset, units
-    );
+    debug!("Roundtrip delay: {} {}. Offset: {} {}", roundtrip, units, offset, units);
 
     Ok(NtpResult::new(
         timestamp.seconds as u32,
@@ -446,12 +415,8 @@ fn roundtrip_calculate(t1: u64, t2: u64, t3: u64, t4: u64, units: Units) -> u64 
     let delta_sec_fraction = delta & SECONDS_FRAC_MASK;
 
     match units {
-        Units::Milliseconds => {
-            convert_delays(delta_sec, delta_sec_fraction, u64::from(MSEC_IN_SEC))
-        }
-        Units::Microseconds => {
-            convert_delays(delta_sec, delta_sec_fraction, u64::from(USEC_IN_SEC))
-        }
+        Units::Milliseconds => convert_delays(delta_sec, delta_sec_fraction, u64::from(MSEC_IN_SEC)),
+        Units::Microseconds => convert_delays(delta_sec, delta_sec_fraction, u64::from(USEC_IN_SEC)),
     }
 }
 
@@ -463,12 +428,10 @@ fn offset_calculate(t1: u64, t2: u64, t3: u64, t4: u64, units: Units) -> i64 {
 
     match units {
         Units::Milliseconds => {
-            convert_delays(theta_sec, theta_sec_fraction, u64::from(MSEC_IN_SEC)) as i64
-                * theta.signum()
+            convert_delays(theta_sec, theta_sec_fraction, u64::from(MSEC_IN_SEC)) as i64 * theta.signum()
         }
         Units::Microseconds => {
-            convert_delays(theta_sec, theta_sec_fraction, u64::from(USEC_IN_SEC)) as i64
-                * theta.signum()
+            convert_delays(theta_sec, theta_sec_fraction, u64::from(USEC_IN_SEC)) as i64 * theta.signum()
         }
     }
 }
