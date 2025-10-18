@@ -55,7 +55,7 @@ checksum = "6115af052c7914c0cbb97195e5c72cb61c511527250074f5c041d1048b0d8b16"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.106",
+ "syn 2.0.107",
 ]
 
 [[package]]
@@ -237,7 +237,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "strsim",
- "syn 2.0.106",
+ "syn 2.0.107",
 ]
 
 [[package]]
@@ -250,7 +250,7 @@ dependencies = [
  "ident_case",
  "proc-macro2",
  "quote",
- "syn 2.0.106",
+ "syn 2.0.107",
 ]
 
 [[package]]
@@ -261,7 +261,7 @@ checksum = "fc34b93ccb385b40dc71c6fceac4b2ad23662c7eeb248cf10d529b7e055b6ead"
 dependencies = [
  "darling_core 0.20.11",
  "quote",
- "syn 2.0.106",
+ "syn 2.0.107",
 ]
 
 [[package]]
@@ -272,7 +272,7 @@ checksum = "d38308df82d1080de0afee5d069fa14b0326a88c14f15c5ccda35b4a6c414c81"
 dependencies = [
  "darling_core 0.21.3",
  "quote",
- "syn 2.0.106",
+ "syn 2.0.107",
 ]
 
 [[package]]
@@ -304,7 +304,7 @@ dependencies = [
  "proc-macro-error2",
  "proc-macro2",
  "quote",
- "syn 2.0.106",
+ "syn 2.0.107",
 ]
 
 [[package]]
@@ -324,7 +324,7 @@ checksum = "6178a82cf56c836a3ba61a7935cdb1c49bfaa6fa4327cd5bf554a503087de26b"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.106",
+ "syn 2.0.107",
 ]
 
 [[package]]
@@ -409,7 +409,7 @@ dependencies = [
  "darling 0.20.11",
  "proc-macro2",
  "quote",
- "syn 2.0.106",
+ "syn 2.0.107",
 ]
 
 [[package]]
@@ -680,7 +680,7 @@ dependencies = [
  "darling 0.21.3",
  "proc-macro2",
  "quote",
- "syn 2.0.106",
+ "syn 2.0.107",
 ]
 
 [[package]]
@@ -692,7 +692,7 @@ checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 [[package]]
 name = "esp-alloc"
 version = "0.9.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#9e2a8afd542e32d0c77d53749912b5c59b710d01"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#b5b59fe9e77a7c04108cb7ef946b4981acf705d8"
 dependencies = [
  "allocator-api2",
  "cfg-if",
@@ -707,7 +707,7 @@ dependencies = [
 [[package]]
 name = "esp-backtrace"
 version = "0.18.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#9e2a8afd542e32d0c77d53749912b5c59b710d01"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#b5b59fe9e77a7c04108cb7ef946b4981acf705d8"
 dependencies = [
  "cfg-if",
  "document-features",
@@ -723,7 +723,7 @@ dependencies = [
 [[package]]
 name = "esp-bootloader-esp-idf"
 version = "0.3.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#9e2a8afd542e32d0c77d53749912b5c59b710d01"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#b5b59fe9e77a7c04108cb7ef946b4981acf705d8"
 dependencies = [
  "cfg-if",
  "document-features",
@@ -737,7 +737,7 @@ dependencies = [
 [[package]]
 name = "esp-config"
 version = "0.6.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#9e2a8afd542e32d0c77d53749912b5c59b710d01"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#b5b59fe9e77a7c04108cb7ef946b4981acf705d8"
 dependencies = [
  "document-features",
  "esp-metadata-generated",
@@ -749,7 +749,7 @@ dependencies = [
 [[package]]
 name = "esp-hal"
 version = "1.0.0-rc.1"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#9e2a8afd542e32d0c77d53749912b5c59b710d01"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#b5b59fe9e77a7c04108cb7ef946b4981acf705d8"
 dependencies = [
  "bitfield",
  "bitflags 2.9.4",
@@ -803,13 +803,13 @@ dependencies = [
 [[package]]
 name = "esp-hal-procmacros"
 version = "0.20.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#9e2a8afd542e32d0c77d53749912b5c59b710d01"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#b5b59fe9e77a7c04108cb7ef946b4981acf705d8"
 dependencies = [
  "document-features",
  "proc-macro-crate",
  "proc-macro2",
  "quote",
- "syn 2.0.106",
+ "syn 2.0.107",
  "termcolor",
 ]
 
@@ -826,12 +826,12 @@ dependencies = [
 [[package]]
 name = "esp-metadata-generated"
 version = "0.2.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#9e2a8afd542e32d0c77d53749912b5c59b710d01"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#b5b59fe9e77a7c04108cb7ef946b4981acf705d8"
 
 [[package]]
 name = "esp-phy"
 version = "0.1.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#9e2a8afd542e32d0c77d53749912b5c59b710d01"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#b5b59fe9e77a7c04108cb7ef946b4981acf705d8"
 dependencies = [
  "cfg-if",
  "document-features",
@@ -846,7 +846,7 @@ dependencies = [
 [[package]]
 name = "esp-println"
 version = "0.16.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#9e2a8afd542e32d0c77d53749912b5c59b710d01"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#b5b59fe9e77a7c04108cb7ef946b4981acf705d8"
 dependencies = [
  "document-features",
  "esp-metadata-generated",
@@ -858,7 +858,7 @@ dependencies = [
 [[package]]
 name = "esp-radio"
 version = "0.16.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#9e2a8afd542e32d0c77d53749912b5c59b710d01"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#b5b59fe9e77a7c04108cb7ef946b4981acf705d8"
 dependencies = [
  "allocator-api2",
  "cfg-if",
@@ -892,12 +892,12 @@ dependencies = [
 [[package]]
 name = "esp-radio-rtos-driver"
 version = "0.1.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#9e2a8afd542e32d0c77d53749912b5c59b710d01"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#b5b59fe9e77a7c04108cb7ef946b4981acf705d8"
 
 [[package]]
 name = "esp-riscv-rt"
 version = "0.13.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#9e2a8afd542e32d0c77d53749912b5c59b710d01"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#b5b59fe9e77a7c04108cb7ef946b4981acf705d8"
 dependencies = [
  "document-features",
  "riscv",
@@ -907,7 +907,7 @@ dependencies = [
 [[package]]
 name = "esp-rom-sys"
 version = "0.1.2"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#9e2a8afd542e32d0c77d53749912b5c59b710d01"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#b5b59fe9e77a7c04108cb7ef946b4981acf705d8"
 dependencies = [
  "cfg-if",
  "document-features",
@@ -917,7 +917,7 @@ dependencies = [
 [[package]]
 name = "esp-rtos"
 version = "0.1.1"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#9e2a8afd542e32d0c77d53749912b5c59b710d01"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#b5b59fe9e77a7c04108cb7ef946b4981acf705d8"
 dependencies = [
  "allocator-api2",
  "cfg-if",
@@ -939,7 +939,7 @@ dependencies = [
 [[package]]
 name = "esp-sync"
 version = "0.1.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#9e2a8afd542e32d0c77d53749912b5c59b710d01"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#b5b59fe9e77a7c04108cb7ef946b4981acf705d8"
 dependencies = [
  "cfg-if",
  "document-features",
@@ -1207,9 +1207,9 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "indexmap"
-version = "2.11.4"
+version = "2.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b0f83760fb341a774ed326568e19f5a863af4a952def8c39f9ab92fd95b88e5"
+checksum = "6717a8d2a5a929a1a2eb43a12812498ed141a0bcfb7e8f7844fbdbe4303bba9f"
 dependencies = [
  "equivalent",
  "hashbrown",
@@ -1231,7 +1231,7 @@ dependencies = [
  "indoc",
  "proc-macro2",
  "quote",
- "syn 2.0.106",
+ "syn 2.0.107",
 ]
 
 [[package]]
@@ -1261,7 +1261,7 @@ checksum = "03343451ff899767262ec32146f6d559dd759fdadf42ff0e227c7c48f72594b4"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.106",
+ "syn 2.0.107",
 ]
 
 [[package]]
@@ -1379,7 +1379,7 @@ checksum = "ed3955f1a9c7c0c15e092f9c887db08b1fc683305fdf6eb6684f22555355e202"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.106",
+ "syn 2.0.107",
 ]
 
 [[package]]
@@ -1466,7 +1466,7 @@ checksum = "a33fa6ec7f2047f572d49317cca19c87195de99c6e5b6ee492da701cfe02b053"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.106",
+ "syn 2.0.107",
 ]
 
 [[package]]
@@ -1497,7 +1497,7 @@ dependencies = [
  "proc-macro-error-attr2",
  "proc-macro2",
  "quote",
- "syn 2.0.106",
+ "syn 2.0.107",
 ]
 
 [[package]]
@@ -1566,7 +1566,7 @@ checksum = "7d323d13972c1b104aa036bc692cd08b822c8bbf23d79a27c526095856499799"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.106",
+ "syn 2.0.107",
 ]
 
 [[package]]
@@ -1595,7 +1595,7 @@ checksum = "15c3138fdd8d128b2d81829842a3e0ce771b3712f7b6318ed1476b0695e7d330"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.106",
+ "syn 2.0.107",
 ]
 
 [[package]]
@@ -1667,7 +1667,7 @@ checksum = "d540f220d3187173da220f885ab66608367b6574e925011a9353e4badda91d79"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.106",
+ "syn 2.0.107",
 ]
 
 [[package]]
@@ -1815,7 +1815,7 @@ dependencies = [
  "heck",
  "proc-macro2",
  "quote",
- "syn 2.0.106",
+ "syn 2.0.107",
 ]
 
 [[package]]
@@ -1844,9 +1844,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.106"
+version = "2.0.107"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ede7c438028d4436d71104916910f5bb611972c5cfd7f89b8300a8186e6fada6"
+checksum = "2a26dbd934e5451d21ef060c018dae56fc073894c5a7896f882928a76e6d081b"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1863,7 +1863,6 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 name = "tc001"
 version = "0.1.0"
 dependencies = [
- "bt-hci",
  "chrono",
  "chrono-tz",
  "critical-section",
@@ -1918,7 +1917,7 @@ checksum = "3ff15c8ecd7de3849db632e14d18d2571fa09dfc5ed93479bc4485c7a517c913"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.106",
+ "syn 2.0.107",
 ]
 
 [[package]]
@@ -1980,7 +1979,7 @@ dependencies = [
  "darling 0.20.11",
  "proc-macro2",
  "quote",
- "syn 2.0.106",
+ "syn 2.0.107",
  "uuid",
 ]
 
@@ -2071,7 +2070,7 @@ dependencies = [
  "log",
  "proc-macro2",
  "quote",
- "syn 2.0.106",
+ "syn 2.0.107",
  "wasm-bindgen-shared",
 ]
 
@@ -2093,7 +2092,7 @@ checksum = "9f07d2f20d4da7b26400c9f4a0511e6e0345b040694e8a75bd41d578fa4421d7"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.106",
+ "syn 2.0.107",
  "wasm-bindgen-backend",
  "wasm-bindgen-shared",
 ]
@@ -2149,7 +2148,7 @@ checksum = "85e60b0d1b5f99db2556934e21937020776a5d31520bf169e851ac44e6420214"
 [[package]]
 name = "xtensa-lx"
 version = "0.13.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#9e2a8afd542e32d0c77d53749912b5c59b710d01"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#b5b59fe9e77a7c04108cb7ef946b4981acf705d8"
 dependencies = [
  "critical-section",
 ]
@@ -2157,7 +2156,7 @@ dependencies = [
 [[package]]
 name = "xtensa-lx-rt"
 version = "0.21.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#9e2a8afd542e32d0c77d53749912b5c59b710d01"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#b5b59fe9e77a7c04108cb7ef946b4981acf705d8"
 dependencies = [
  "document-features",
  "xtensa-lx",
@@ -2167,11 +2166,11 @@ dependencies = [
 [[package]]
 name = "xtensa-lx-rt-proc-macros"
 version = "0.5.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#9e2a8afd542e32d0c77d53749912b5c59b710d01"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#b5b59fe9e77a7c04108cb7ef946b4981acf705d8"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.106",
+ "syn 2.0.107",
 ]
 
 [[package]]
@@ -2191,7 +2190,7 @@ checksum = "88d2b8d9c68ad2b9e4340d7832716a4d21a22a1154777ad56ea55c51a9cf3831"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.106",
+ "syn 2.0.107",
 ]
 
 [[package]]

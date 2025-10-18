@@ -102,7 +102,7 @@ fn led_config() -> TxChannelConfig {
         .with_idle_output_level(Level::Low)
         .with_carrier_modulation(false)
         .with_idle_output(true)
-        .with_memsize(2)
+        .with_memsize(7)
 }
 
 fn convert_to_pulses(
@@ -216,7 +216,7 @@ where
         O: PeripheralOutput<'d>,
         C: TxChannelCreator<'d, Blocking>,
     {
-        let channel = channel.configure_tx(pin, &led_config()).ok().unwrap();
+        let channel = channel.configure_tx(pin, led_config()).ok().unwrap();
 
         // Assume the RMT peripheral is set up to use the APB clock
         let src_clock = Clocks::get().apb_clock.as_mhz();
@@ -338,7 +338,7 @@ where
         O: PeripheralOutput<'d>,
         C: TxChannelCreator<'d, Async>,
     {
-        let channel = channel.configure_tx(pin, &led_config()).ok().unwrap();
+        let channel = channel.configure_tx(pin, led_config()).ok().unwrap();
 
         // Assume the RMT peripheral is set up to use the APB clock
         let src_clock = Clocks::get().apb_clock.as_mhz();
