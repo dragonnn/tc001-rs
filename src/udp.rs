@@ -17,9 +17,9 @@ impl UdpBuffers {
     pub fn new() -> Self {
         Self {
             rx_meta: Box::new([PacketMetadata::EMPTY; 16]),
-            rx_buffer: Box::new([0; 2048]),
+            rx_buffer: Box::new([0; 128]),
             tx_meta: Box::new([PacketMetadata::EMPTY; 16]),
-            tx_buffer: Box::new([0; 2048]),
+            tx_buffer: Box::new([0; 128]),
         }
     }
 
