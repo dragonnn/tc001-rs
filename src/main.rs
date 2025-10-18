@@ -45,6 +45,7 @@ mod heap;
 mod matrix;
 mod ntp;
 mod udp;
+mod wifi;
 
 // When you are okay with using a nightly compiler it's better to use https://docs.rs/static_cell/2.1.0/static_cell/macro.make_static.html
 macro_rules! mk_static {
