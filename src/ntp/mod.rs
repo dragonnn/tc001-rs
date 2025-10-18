@@ -16,7 +16,7 @@ async fn ntp_request(stack: embassy_net::Stack<'static>) -> Result<chrono::Naive
 
     let mut buffers = UdpBuffers::new();
 
-    let (rx_meta, rx_buffer, tx_meta, tx_buffer) = buffers.as_static_mut();
+    let (rx_meta, rx_buffer, tx_meta, tx_buffer) = buffers.as_mut();
 
     let mut socket = embassy_net::udp::UdpSocket::new(stack, rx_meta, rx_buffer, tx_meta, tx_buffer);
 

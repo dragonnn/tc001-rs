@@ -23,16 +23,9 @@ impl UdpBuffers {
         }
     }
 
-    pub fn as_static_mut(
-        &mut self,
-    ) -> (&'static mut [PacketMetadata], &'static mut [u8], &'static mut [PacketMetadata], &'static mut [u8]) {
-        unsafe {
-            core::mem::transmute((
-                self.rx_meta.as_mut(),
-                self.rx_buffer.as_mut(),
-                self.tx_meta.as_mut(),
-                self.tx_buffer.as_mut(),
-            ))
-        }
+    pub fn as_mut<'a>(
+        &'a mut self,
+    ) -> (&'a mut [PacketMetadata], &'a mut [u8], &'a mut [PacketMetadata], &'a mut [u8]) {
+        (self.rx_meta.as_mut(), self.rx_buffer.as_mut(), self.tx_meta.as_mut(), self.tx_buffer.as_mut())
     }
 }
