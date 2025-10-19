@@ -3,6 +3,6 @@ use alloc::string::String;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
-pub enum Key {
-    Wifi(u8),
+pub enum Key<'a> {
+    Wifi(&'a str),
 }

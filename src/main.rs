@@ -125,9 +125,9 @@ async fn main(spawner: Spawner) {
         seed,
     );
 
-    storage::init(peripherals.FLASH).await;
+    let storage = storage::init(peripherals.FLASH).await;
 
-    spawner.must_spawn(wifi::wifi_task(wifi_controller));
+    spawner.must_spawn(wifi::wifi_task(wifi_controller, *&storage));
     spawner.must_spawn(wifi::net_task(runner));
 
     spawner.must_spawn(ntp::ntp_task(stack, rtc2));

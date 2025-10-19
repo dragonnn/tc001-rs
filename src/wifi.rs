@@ -1,13 +1,20 @@
+use alloc::string::{String, ToString};
+
 use embassy_time::{Duration, Timer};
 use esp_radio::wifi::{ClientConfig, ModeConfig, ScanConfig, WifiController, WifiDevice, WifiEvent, WifiStaState};
 
-const SSID: &str = dotenvy_macro::dotenv!("WIFI_SSID");
-const PASSWORD: &str = dotenvy_macro::dotenv!("WIFI_PASSWORD");
+const SSID0: &str = dotenvy_macro::dotenv!("WIFI_SSID0");
+const PASSWORD0: &str = dotenvy_macro::dotenv!("WIFI_PASSWORD0");
+const SSID1: &str = dotenvy_macro::dotenv!("WIFI_SSID1");
+const PASSWORD1: &str = dotenvy_macro::dotenv!("WIFI_PASSWORD1");
 
 #[embassy_executor::task]
-pub async fn wifi_task(mut controller: WifiController<'static>) {
+pub async fn wifi_task(mut controller: WifiController<'static>, storage: crate::storage::Storage) {
     info!("start connection task");
     info!("Device capabilities: {:?}", controller.capabilities());
+    //storage.save(&crate::storage::Key::Wifi(SSID0), &PASSWORD0.to_string()).await.expect("failed saving ssid0");
+    //storage.save(&crate::storage::Key::Wifi(SSID1), &PASSWORD1.to_string()).await.expect("failed saving ssid1");
+
     loop {
         match esp_radio::wifi::sta_state() {
             WifiStaState::Connected => {
@@ -19,8 +26,7 @@ pub async fn wifi_task(mut controller: WifiController<'static>) {
             _ => {}
         }
         if !matches!(controller.is_started(), Ok(true)) {
-            let client_config =
-                ModeConfig::Client(ClientConfig::default().with_ssid(SSID.into()).with_password(PASSWORD.into()));
+            let mut client_config = ModeConfig::Client(ClientConfig::default());
             controller.set_config(&client_config).unwrap();
             info!("Starting wifi");
             controller.start_async().await.unwrap();
@@ -31,6 +37,13 @@ pub async fn wifi_task(mut controller: WifiController<'static>) {
             let result = controller.scan_with_config_async(scan_config).await.unwrap();
             for ap in result {
                 info!("{:?}", ap);
+                if let Ok(password) = storage.read::<String>(&crate::storage::Key::Wifi(&ap.ssid)).await {
+                    info!("Found saved network: {}, trying to connect...", ap.ssid);
+                    client_config =
+                        ModeConfig::Client(ClientConfig::default().with_ssid(ap.ssid).with_password(password));
+                    controller.set_config(&client_config).unwrap();
+                    break;
+                }
             }
         }
         info!("About to connect...");

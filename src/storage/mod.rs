@@ -1,3 +1,4 @@
+use alloc::vec;
 use core::cell::RefCell;
 
 use ekv::Database;
@@ -7,7 +8,34 @@ use embedded_storage::nor_flash::{NorFlash, ReadNorFlash};
 use esp_hal::peripherals::FLASH;
 use esp_storage::FlashStorage;
 
-pub mod keys;
+mod keys;
+
+pub use keys::Key;
+
+#[derive(Debug)]
+pub enum StorageError {
+    WriteError(ekv::WriteError<esp_storage::FlashStorageError>),
+    CommitError(ekv::CommitError<esp_storage::FlashStorageError>),
+    ReadError(ekv::ReadError<esp_storage::FlashStorageError>),
+}
+
+impl From<ekv::WriteError<esp_storage::FlashStorageError>> for StorageError {
+    fn from(e: ekv::WriteError<esp_storage::FlashStorageError>) -> Self {
+        StorageError::WriteError(e)
+    }
+}
+
+impl From<ekv::CommitError<esp_storage::FlashStorageError>> for StorageError {
+    fn from(e: ekv::CommitError<esp_storage::FlashStorageError>) -> Self {
+        StorageError::CommitError(e)
+    }
+}
+
+impl From<ekv::ReadError<esp_storage::FlashStorageError>> for StorageError {
+    fn from(e: ekv::ReadError<esp_storage::FlashStorageError>) -> Self {
+        StorageError::ReadError(e)
+    }
+}
 
 struct DbFlash<T: NorFlash + ReadNorFlash> {
     start: usize,
@@ -106,4 +134,36 @@ pub struct Storage {
     db: &'static Database<DbFlash<FlashStorage<'static>>, CriticalSectionRawMutex>,
 }
 
-impl Storage {}
+impl Storage {
+    pub async fn save<'a, T: serde::Serialize>(&self, key: &'a Key<'a>, value: &'a T) -> Result<(), StorageError> {
+        let mut key = postcard::to_allocvec(key).expect("failed serializing key to postcard");
+        let value = postcard::to_allocvec(value).expect("failed serializing to postcard");
+
+        info!("key size: {}, value size: {}", key.len(), value.len());
+
+        let mut write = self.db.write_transaction().await;
+        write.write(&key, &value.len().to_ne_bytes()).await?;
+        key.push(0xFF); // separator
+        write.write(&key, &value).await?;
+        write.commit().await?;
+
+        Ok(())
+    }
+
+    pub async fn read<'a, T: serde::de::DeserializeOwned>(&self, key: &'a Key<'a>) -> Result<T, StorageError> {
+        let mut key = postcard::to_allocvec(key).expect("failed serializing key to postcard");
+
+        let read = self.db.read_transaction().await;
+        let mut len_buf = [0u8; core::mem::size_of::<usize>()];
+        read.read(&key, &mut len_buf).await?;
+        let len = usize::from_ne_bytes(len_buf);
+        info!("read value length: {}", len);
+        let mut value_buf = vec![0u8; len];
+        key.push(0xFF); // separator
+        read.read(&key, &mut value_buf).await?;
+
+        let value: T = postcard::from_bytes(&value_buf).expect("failed deserializing from postcard");
+
+        Ok(value)
+    }
+}
