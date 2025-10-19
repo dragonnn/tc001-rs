@@ -43,20 +43,11 @@ extern crate alloc;
 
 mod heap;
 mod matrix;
+mod mk_static;
 mod ntp;
 mod storage;
 mod udp;
 mod wifi;
-
-// When you are okay with using a nightly compiler it's better to use https://docs.rs/static_cell/2.1.0/static_cell/macro.make_static.html
-macro_rules! mk_static {
-    ($t:ty,$val:expr) => {{
-        static STATIC_CELL: static_cell::StaticCell<$t> = static_cell::StaticCell::new();
-        #[deny(unused_attributes)]
-        let x = STATIC_CELL.uninit().write(($val));
-        x
-    }};
-}
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
@@ -89,14 +80,7 @@ async fn main(spawner: Spawner) {
     static APP_CORE_STACK: StaticCell<Stack<{ 8 * 1024 }>> = StaticCell::new();
     let app_core_stack = APP_CORE_STACK.init(Stack::new());
 
-    //let handle = esp_rtos::CurrentThreadHandle::get();
-    //handle.set_priority(30);
-
     let sw_int = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
-
-    static EXECUTOR_CORE_1: StaticCell<InterruptExecutor<2>> = StaticCell::new();
-    let executor_core1 = InterruptExecutor::new(sw_int.software_interrupt2);
-    let executor_core1 = EXECUTOR_CORE_1.init(executor_core1);
 
     let rtc = esp_hal::rtc_cntl::Rtc::new(peripherals.LPWR);
     static RTC: StaticCell<esp_hal::rtc_cntl::Rtc> = StaticCell::new();
@@ -121,7 +105,7 @@ async fn main(spawner: Spawner) {
         .with_static_tx_buf_num(1)
         .with_rx_ba_win(3);
 
-    let esp_radio_ctrl = &*mk_static!(Controller<'static>, esp_radio::init().unwrap());
+    let esp_radio_ctrl = &*mk_static::mk_static!(Controller<'static>, esp_radio::init().unwrap());
 
     let (wifi_controller, interfaces) = esp_radio::wifi::new(&esp_radio_ctrl, peripherals.WIFI, wifi_config)
         .expect("Failed to initialize WIFI controller");
@@ -133,8 +117,12 @@ async fn main(spawner: Spawner) {
     let rng = Rng::new();
     let seed = (rng.random() as u64) << 32 | rng.random() as u64;
 
-    let (stack, runner) =
-        embassy_net::new(wifi_interface, config, mk_static!(StackResources<3>, StackResources::<3>::new()), seed);
+    let (stack, runner) = embassy_net::new(
+        wifi_interface,
+        config,
+        mk_static::mk_static!(StackResources<3>, StackResources::<3>::new()),
+        seed,
+    );
 
     storage::init(peripherals.FLASH).await;
 

@@ -1,3 +1,5 @@
+use core::cell::RefCell;
+
 use ekv::Database;
 use embassy_embedded_hal::adapter::BlockingAsync;
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
@@ -67,7 +69,7 @@ impl<T: NorFlash + ReadNorFlash> ekv::flash::Flash for DbFlash<T> {
     }
 }
 
-pub async fn init(flash: FLASH<'static>) {
+pub async fn init(flash: FLASH<'static>) -> Storage {
     let mut flash = FlashStorage::new(flash).multicore_auto_park();
     let mut buffer = [0u8; esp_bootloader_esp_idf::partitions::PARTITION_TABLE_MAX_LEN];
     let pt = esp_bootloader_esp_idf::partitions::read_partition_table(&mut flash, &mut buffer).unwrap();
@@ -84,7 +86,8 @@ pub async fn init(flash: FLASH<'static>) {
 
     let flash = DbFlash { flash, start: data.offset() as usize, size: data.len() as usize };
 
-    let db = Database::<_, CriticalSectionRawMutex>::new(flash, ekv::Config::default());
+    let db: Database<DbFlash<FlashStorage<'_>>, CriticalSectionRawMutex> =
+        Database::<_, CriticalSectionRawMutex>::new(flash, ekv::Config::default());
 
     match db.mount().await {
         Ok(_) => info!("Storage mounted successfully"),
@@ -94,4 +97,13 @@ pub async fn init(flash: FLASH<'static>) {
             db.mount().await.expect("failed to mount storage after format");
         }
     }
+
+    Storage { db: crate::mk_static::mk_static!(Database<DbFlash<FlashStorage<'static>>, CriticalSectionRawMutex>, db) }
 }
+
+#[derive(Clone, Copy)]
+pub struct Storage {
+    db: &'static Database<DbFlash<FlashStorage<'static>>, CriticalSectionRawMutex>,
+}
+
+impl Storage {}
