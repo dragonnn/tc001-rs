@@ -1,9 +1,17 @@
+use alloc::boxed::Box;
 use core::fmt::Write as _;
 
 use embassy_time::Duration;
 use embedded_graphics::prelude::*;
 use esp_hal::{delay::Delay, rmt::Rmt, time::Rate};
 use esp_hal_smartled::SmartLedsAdapter;
+
+mod date;
+mod event;
+mod page;
+mod time;
+
+use page::{Page, PageRender, PageTarget};
 
 pub fn matrix_task(
     rmt: esp_hal::peripherals::RMT<'static>,
@@ -52,19 +60,12 @@ pub fn matrix_task(
     matrix.flush_with_gamma().ok();
 
     info!("Starting matrix loop");
-    let mut buf = alloc::string::String::new();
+
+    let mut current_page: Box<dyn Page> = Box::new(time::Time::new(rtc));
+
     loop {
-        buf.clear();
-        embedded_graphics::primitives::Rectangle::new(Point::new(0, 0), Size::new(32, 8))
-            .into_styled(embedded_graphics::primitives::PrimitiveStyle::with_fill(
-                embedded_graphics::pixelcolor::Rgb888::BLACK,
-            ))
-            .draw(&mut matrix)
-            .ok();
-        let now = rtc.current_time_us();
-        let now = chrono::NaiveDateTime::from_timestamp_micros(now as i64).unwrap();
-        write!(&mut buf, "{}", now.time()).ok();
-        embedded_graphics::text::Text::new(buf.as_str(), Point::new(0, 5), style).draw(&mut matrix).ok();
+        current_page.update();
+        current_page.render(&mut matrix);
         let now = embassy_time::Instant::now();
         loop {
             matrix.flush_with_gamma().ok();
