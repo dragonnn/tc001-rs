@@ -371,6 +371,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ekv"
+version = "1.0.0"
+source = "git+https://github.com/embassy-rs/ekv/#b68fd9a9369ab1b7f6181e8f7fc97aa99012a1e3"
+dependencies = [
+ "embassy-sync 0.7.2",
+ "heapless 0.8.0",
+]
+
+[[package]]
 name = "embassy-embedded-hal"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -934,6 +943,20 @@ dependencies = [
  "esp-sync",
  "log",
  "portable-atomic",
+]
+
+[[package]]
+name = "esp-storage"
+version = "0.8.0"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#b5b59fe9e77a7c04108cb7ef946b4981acf705d8"
+dependencies = [
+ "document-features",
+ "embedded-storage",
+ "esp-hal",
+ "esp-hal-procmacros",
+ "esp-metadata-generated",
+ "esp-rom-sys",
+ "esp-sync",
 ]
 
 [[package]]
@@ -1867,13 +1890,17 @@ dependencies = [
  "chrono-tz",
  "critical-section",
  "dotenvy_macro",
+ "ekv",
+ "embassy-embedded-hal",
  "embassy-executor",
  "embassy-net",
+ "embassy-sync 0.7.2",
  "embassy-time",
  "embedded-graphics 0.8.1",
  "embedded-io 0.7.1",
  "embedded-io-async 0.7.0",
  "embedded-picofont",
+ "embedded-storage",
  "esp-alloc",
  "esp-backtrace",
  "esp-bootloader-esp-idf",
@@ -1882,6 +1909,7 @@ dependencies = [
  "esp-println",
  "esp-radio",
  "esp-rtos",
+ "esp-storage",
  "heapless 0.9.1",
  "log",
  "smart-leds",

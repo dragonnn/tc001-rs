@@ -44,6 +44,7 @@ extern crate alloc;
 mod heap;
 mod matrix;
 mod ntp;
+mod storage;
 mod udp;
 mod wifi;
 
@@ -134,6 +135,8 @@ async fn main(spawner: Spawner) {
 
     let (stack, runner) =
         embassy_net::new(wifi_interface, config, mk_static!(StackResources<3>, StackResources::<3>::new()), seed);
+
+    storage::init(peripherals.FLASH).await;
 
     spawner.must_spawn(wifi::wifi_task(wifi_controller));
     spawner.must_spawn(wifi::net_task(runner));

@@ -13,6 +13,7 @@ pub async fn wifi_task(mut controller: WifiController<'static>) {
             WifiStaState::Connected => {
                 // wait until we're no longer connected
                 controller.wait_for_event(WifiEvent::StaDisconnected).await;
+                error!("WiFi disconnected!");
                 Timer::after(Duration::from_millis(5000)).await
             }
             _ => {}
