@@ -7,7 +7,7 @@ use embedded_storage::nor_flash::{NorFlash, ReadNorFlash};
 use esp_hal::peripherals::FLASH;
 use esp_storage::FlashStorage;
 
-pub const FLASH_SIZE: usize = 0x1F0000;
+pub mod keys;
 
 struct DbFlash<T: NorFlash + ReadNorFlash> {
     start: usize,

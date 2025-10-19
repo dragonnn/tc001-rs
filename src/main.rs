@@ -22,7 +22,7 @@ use esp_backtrace as _;
 use esp_hal::{
     clock::CpuClock,
     delay::Delay,
-    gpio::{Level, Output, OutputConfig},
+    gpio::{Input, InputConfig, Level, Output, OutputConfig, Pull},
     interrupt::software::SoftwareInterruptControl,
     rmt::Rmt,
     rng::Rng,
@@ -41,6 +41,7 @@ use smart_leds::SmartLedsWriteAsync;
 use static_cell::StaticCell;
 extern crate alloc;
 
+mod buttons;
 mod heap;
 mod matrix;
 mod mk_static;
@@ -130,6 +131,11 @@ async fn main(spawner: Spawner) {
     spawner.must_spawn(wifi::net_task(runner));
 
     spawner.must_spawn(ntp::ntp_task(stack, rtc2));
+    spawner.must_spawn(buttons::button_task(
+        Input::new(peripherals.GPIO26, InputConfig::default().with_pull(Pull::Up)),
+        Input::new(peripherals.GPIO27, InputConfig::default().with_pull(Pull::Up)),
+        Input::new(peripherals.GPIO14, InputConfig::default().with_pull(Pull::Up)),
+    ));
 
     loop {
         Timer::after(Duration::from_millis(1000)).await;
