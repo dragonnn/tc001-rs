@@ -3,7 +3,7 @@ edition      = "2021"
 name         = "tc001"
 rust-version = "1.86"
 version      = "0.1.0"
-
+license      = "MIT OR Apache-2.0"
 
 [dependencies]
 esp-bootloader-esp-idf = { version = "0.3.0", features = ["esp32"] }
