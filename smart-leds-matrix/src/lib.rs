@@ -13,7 +13,6 @@ use embedded_graphics_core::{
     pixelcolor::{Rgb888, RgbColor},
     Pixel,
 };
-
 use smart_leds::{brightness, gamma, SmartLedsWrite, RGB8};
 
 pub mod r#async;
@@ -33,6 +32,16 @@ pub struct SmartLedMatrix<T, L, const N: usize> {
     brightness: u8,
 }
 
+impl<T, L, const N: usize> core::fmt::Debug for SmartLedMatrix<T, L, N> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("SmartLedMatrix")
+            .field("layout", &"Layout")
+            .field("content", &format_args!("[RGB8; {}]", N))
+            .field("brightness", &self.brightness)
+            .finish()
+    }
+}
+
 impl<T, L, const N: usize> SmartLedMatrix<T, L, N> {
     pub fn set_brightness(&mut self, new_brightness: u8) {
         self.brightness = new_brightness;
@@ -48,12 +57,7 @@ where
     <T as SmartLedsWrite>::Color: From<RGB8>,
 {
     pub fn new(writer: T, layout: L) -> Self {
-        Self {
-            writer,
-            layout,
-            content: [RGB8::default(); N],
-            brightness: 255,
-        }
+        Self { writer, layout, content: [RGB8::default(); N], brightness: 255 }
     }
 
     pub fn flush(&mut self) -> Result<(), T::Error> {
@@ -61,10 +65,7 @@ where
         self.writer.write(iter)
     }
     pub fn flush_with_gamma(&mut self) -> Result<(), T::Error> {
-        let iter = brightness(
-            gamma(self.content.as_slice().iter().cloned()),
-            self.brightness,
-        );
+        let iter = brightness(gamma(self.content.as_slice().iter().cloned()), self.brightness);
         self.writer.write(iter)
     }
 }
@@ -81,11 +82,7 @@ where
         I: IntoIterator<Item = Pixel<Rgb888>>,
     {
         for Pixel(pos, color) in pixels {
-            if let Some(t) = self
-                .layout
-                .map(pos)
-                .and_then(|index| self.content.get_mut(index))
-            {
+            if let Some(t) = self.layout.map(pos).and_then(|index| self.content.get_mut(index)) {
                 *t = RGB8::new(color.r(), color.g(), color.b());
             }
         }
@@ -102,10 +99,10 @@ impl<T, L: Layout, const N: usize> OriginDimensions for SmartLedMatrix<T, L, N> 
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
-    use crate::layout::Rectangular;
     use embedded_graphics_core::{geometry::Point, prelude::Dimensions, primitives::PointsIter};
+
+    use super::*;
+    use crate::layout::Rectangular;
 
     struct MockWriter<'a, const N: usize> {
         content: &'a mut [RGB8; N],
@@ -143,8 +140,7 @@ mod tests {
     fn test_y_inversion() {
         let content = &mut [RGB8::new(0, 0, 0); 64];
         let writer = MockWriter { content };
-        let mut matrix =
-            SmartLedMatrix::<_, _, { 8 * 8 }>::new(writer, Rectangular::new_invert_y(8, 8));
+        let mut matrix = SmartLedMatrix::<_, _, { 8 * 8 }>::new(writer, Rectangular::new_invert_y(8, 8));
         let mut pixels = get64pixels(Rgb888::BLACK);
 
         pixels[0] = Pixel(Point::new(0, 0), Rgb888::WHITE);
@@ -154,11 +150,7 @@ mod tests {
 
         for i in 0..64 {
             if i == 56 {
-                assert_eq!(
-                    content[i],
-                    RGB8::new(255, 255, 255),
-                    r#"expected a white pixel after inversion"#
-                );
+                assert_eq!(content[i], RGB8::new(255, 255, 255), r#"expected a white pixel after inversion"#);
                 continue;
             }
             assert_eq!(content[i], RGB8::new(0, 0, 0), r#"expected black pixel"#);
@@ -179,11 +171,7 @@ mod tests {
 
         for i in 0..64 {
             if i == 0 {
-                assert_eq!(
-                    content[i],
-                    RGB8::new(255, 255, 255),
-                    r#"expected a white pixel on it's original place"#
-                );
+                assert_eq!(content[i], RGB8::new(255, 255, 255), r#"expected a white pixel on it's original place"#);
                 continue;
             }
             assert_eq!(content[i], RGB8::new(0, 0, 0), r#"expected black pixel"#);
@@ -197,11 +185,7 @@ mod tests {
         let mut matrix = SmartLedMatrix::<_, _, { 8 * 8 }>::new(writer, Rectangular::new(8, 8));
         let pixels = get64pixels(Rgb888::WHITE);
 
-        assert_eq!(
-            matrix.brightness(),
-            255,
-            r#"initial brightness shall be set to max (255)"#
-        );
+        assert_eq!(matrix.brightness(), 255, r#"initial brightness shall be set to max (255)"#);
         matrix.set_brightness(10);
         assert_eq!(matrix.brightness(), 10, r#"brightness shall be set to 10"#);
 
@@ -229,10 +213,7 @@ mod tests {
             fn map(&self, p: Point) -> Option<usize> {
                 const LED_PER_ROW: [u8; 3] = [3, 4, 5];
 
-                if p.y < 0
-                    || p.y >= LED_PER_ROW.len() as i32
-                    || p.x < 0
-                    || p.x >= i32::from(LED_PER_ROW[p.y as usize])
+                if p.y < 0 || p.y >= LED_PER_ROW.len() as i32 || p.x < 0 || p.x >= i32::from(LED_PER_ROW[p.y as usize])
                 {
                     return None;
                 }
@@ -258,9 +239,7 @@ mod tests {
         // draw vertical line of red pixels on the left edge
         let mut bb = matrix.bounding_box();
         bb.size.width = 1;
-        matrix
-            .draw_iter(bb.points().map(|p| Pixel(p, Rgb888::RED)))
-            .unwrap();
+        matrix.draw_iter(bb.points().map(|p| Pixel(p, Rgb888::RED))).unwrap();
 
         matrix.flush().unwrap();
 

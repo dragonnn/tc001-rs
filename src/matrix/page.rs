@@ -1,22 +1,28 @@
-use alloc::boxed::Box;
+use alloc::{boxed::Box, string::String};
 
 use embedded_graphics::{pixelcolor::Rgb888, prelude::DrawTarget};
 
 pub trait PageTarget: DrawTarget<Color = Rgb888, Error = core::convert::Infallible> {}
 
-impl PageTarget
-    for smart_leds_matrix::SmartLedMatrix<
-        esp_hal_smartled::SmartLedsAdapter<'_, 6400>,
-        smart_leds_matrix::layout::Rectangular<smart_leds_matrix::layout::invert_axis::Tc001>,
-        256,
-    >
-{
+impl<T: DrawTarget<Color = Rgb888, Error = core::convert::Infallible>> PageTarget for T {}
+
+pub enum Pages {
+    Time(Box<super::time::Time>),
+    Date(Box<super::date::Date>),
 }
 
-pub trait Page {
-    fn update(&mut self);
-}
+impl Pages {
+    pub fn update(&mut self) {
+        match self {
+            Pages::Time(page) => page.update(),
+            Pages::Date(page) => page.update(),
+        }
+    }
 
-pub trait PageRender: Page {
-    fn render<T: PageTarget>(&self, target: &mut T);
+    pub fn render<T: PageTarget>(&self, target: &mut T) {
+        match self {
+            Pages::Time(page) => page.render(target),
+            Pages::Date(page) => page.render(target),
+        }
+    }
 }

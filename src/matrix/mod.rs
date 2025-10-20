@@ -2,7 +2,7 @@ use alloc::boxed::Box;
 use core::fmt::Write as _;
 
 use embassy_time::Duration;
-use embedded_graphics::prelude::*;
+use embedded_graphics::{prelude::*, primitives::Rectangle};
 use esp_hal::{delay::Delay, rmt::Rmt, time::Rate};
 use esp_hal_smartled::SmartLedsAdapter;
 
@@ -10,8 +10,6 @@ mod date;
 mod event;
 mod page;
 mod time;
-
-use page::{Page, PageRender, PageTarget};
 
 pub fn matrix_task(
     rmt: esp_hal::peripherals::RMT<'static>,
@@ -61,7 +59,8 @@ pub fn matrix_task(
 
     info!("Starting matrix loop");
 
-    let mut current_page: Box<dyn Page> = Box::new(time::Time::new(rtc));
+    let mut current_page = time::Time::new(rtc);
+    let mut current_page_instant = embassy_time::Instant::now();
 
     loop {
         current_page.update();
@@ -73,6 +72,34 @@ pub fn matrix_task(
             if embassy_time::Instant::now() - now >= Duration::from_millis(100) {
                 break;
             }
+        }
+
+        if current_page_instant.elapsed() >= Duration::from_secs(10) {
+            let mut new_page = match current_page {
+                page::Pages::Time(_) => date::Date::new(rtc),
+                page::Pages::Date(_) => time::Time::new(rtc),
+            };
+
+            new_page.update();
+
+            for i in 0..matrix.size().width {
+                {
+                    let current_page_offset = Point::new(i as i32 - matrix.size().width as i32, 0);
+                    let mut current_page_target = matrix.translated(current_page_offset);
+                    current_page.render(&mut current_page_target);
+                }
+                {
+                    let new_page_offset = Point::new(i as i32, 0);
+                    let mut new_page_target = matrix.translated(new_page_offset);
+                    new_page.render(&mut new_page_target);
+                }
+
+                matrix.flush_with_gamma().ok();
+                Delay::new().delay_millis(10);
+            }
+
+            current_page = new_page;
+            current_page_instant = embassy_time::Instant::now();
         }
     }
 }
