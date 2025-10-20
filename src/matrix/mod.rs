@@ -82,20 +82,21 @@ pub fn matrix_task(
 
             new_page.update();
 
-            for i in 0..matrix.size().width {
+            for i in (0..matrix.size().width).rev() {
+                let current_page_offset = Point::new(i as i32 - matrix.size().width as i32, 0);
+                let new_page_offset = Point::new(i as i32, 0);
+
                 {
-                    let current_page_offset = Point::new(i as i32 - matrix.size().width as i32, 0);
                     let mut current_page_target = matrix.translated(current_page_offset);
                     current_page.render(&mut current_page_target);
                 }
                 {
-                    let new_page_offset = Point::new(i as i32, 0);
                     let mut new_page_target = matrix.translated(new_page_offset);
                     new_page.render(&mut new_page_target);
                 }
 
                 matrix.flush_with_gamma().ok();
-                Delay::new().delay_millis(10);
+                Delay::new().delay_millis(25);
             }
 
             current_page = new_page;
