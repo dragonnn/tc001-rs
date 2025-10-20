@@ -8,6 +8,7 @@ use esp_hal_smartled::SmartLedsAdapter;
 
 mod date;
 mod event;
+mod font;
 mod page;
 mod time;
 
