@@ -10,7 +10,7 @@ pub struct AwtrixGlyph {
 }
 
 static AWTRIX_GLYPHS: phf::Map<char, AwtrixGlyph> = phf_map! {
-' ' => AwtrixGlyph {
+    ' ' => AwtrixGlyph {
         width: 8,
         height: 1,
         advance: 2,
