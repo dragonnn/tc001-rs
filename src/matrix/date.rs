@@ -30,9 +30,9 @@ impl Date {
             ))
             .draw(target)
             .ok();
-        let font = embedded_graphics::mono_font::ascii::FONT_4X6;
-        let style = embedded_graphics::mono_font::MonoTextStyle::new(&font, embedded_graphics::pixelcolor::Rgb888::RED);
-        //let style = super::font::mateine(embedded_graphics::pixelcolor::Rgb888::RED);
-        embedded_graphics::text::Text::new(self.current_time.as_str(), Point::new(0, 5), style).draw(target).ok();
+        //let font = embedded_graphics::mono_font::ascii::FONT_4X6;
+        //let style = embedded_graphics::mono_font::MonoTextStyle::new(&font, embedded_graphics::pixelcolor::Rgb888::RED);
+        let style = super::font::mateine(embedded_graphics::pixelcolor::Rgb888::RED);
+        embedded_graphics::text::Text::new(self.current_time.as_str(), Point::new(0, 1), style).draw(target).ok();
     }
 }

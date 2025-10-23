@@ -6,6 +6,7 @@ use embedded_graphics::{prelude::*, primitives::Rectangle};
 use esp_hal::{delay::Delay, rmt::Rmt, time::Rate};
 use esp_hal_smartled::SmartLedsAdapter;
 
+mod awtrix;
 mod date;
 mod event;
 mod font;
