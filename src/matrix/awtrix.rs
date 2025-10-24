@@ -1892,10 +1892,13 @@ impl TextRenderer for AwtrixFont {
     where
         D: embedded_graphics::prelude::DrawTarget<Color = Self::Color>,
     {
+        //info!("AwtrixFont::draw_string() called with text: {}", text);
+        //info!("Position: {:?}", position);
+        //info!("Baseline: {:?}", baseline);
         let point = {
             let mut printer = AwtrixFontInner::new();
             printer.cursor_x = position.x;
-            printer.cursor_y = position.y;
+            printer.cursor_y = position.y + 4;
 
             printer.print_str(text, &mut move |x, y| {
                 target.draw_iter([Pixel(embedded_graphics::prelude::Point::new(x, y), Rgb888::WHITE)]).ok();
@@ -1929,7 +1932,8 @@ impl TextRenderer for AwtrixFont {
     }
 
     fn line_height(&self) -> u32 {
-        todo!()
+        //todo: fix that
+        8
     }
 }
 
