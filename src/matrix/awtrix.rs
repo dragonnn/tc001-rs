@@ -1,3 +1,10 @@
+/*
+
+
+
+*/
+
+use embedded_graphics::{pixelcolor::Rgb888, prelude::RgbColor, text::renderer::TextRenderer, Pixel};
 use phf::phf_map;
 
 pub struct AwtrixGlyph {
@@ -1803,3 +1810,193 @@ static AWTRIX_GLYPHS: phf::Map<char, AwtrixGlyph> = phf_map! {
         bitmap: &[0xA0, 0x00, 0xA0, 0x60, 0x20, 0x40],
     },
 };
+
+pub struct AwtrixGlyphPrinter {
+    pub cursor_x: i32,
+    pub cursor_y: i32,
+    pub y_advance: i32,
+    pub text_color: u32,
+}
+
+impl AwtrixGlyphPrinter {
+    pub fn print_str(s: &str, color: Rgb888) {}
+
+    pub fn print_char(&mut self, c: char) {
+        match c {
+            '\n' => {
+                self.cursor_y += self.y_advance;
+                self.cursor_x = 0;
+                return;
+            }
+            '\r' => {
+                // optional: carriage return handling
+                return;
+            }
+            _ => {}
+        }
+
+        let glyph = AWTRIX_GLYPHS.get(&c).or_else(|| AWTRIX_GLYPHS.get(&' ')).unwrap();
+
+        let w = glyph.width as usize;
+        let h = glyph.height as usize;
+        let xo = glyph.x_offset as i32;
+        let yo = glyph.y_offset as i32;
+
+        let mut bits: u8 = 0;
+        let mut bit: u8 = 0;
+        let mut bo: usize = 0;
+
+        for yy in 0..h {
+            for xx in 0..w {
+                if (bit & 7) == 0 {
+                    // Load next byte every 8 pixels
+                    if bo < glyph.bitmap.len() {
+                        bits = glyph.bitmap[bo];
+                        bo += 1;
+                    } else {
+                        bits = 0;
+                    }
+                }
+                if (bits & 0x80) != 0 {
+                    let x = self.cursor_x + xo + xx as i32;
+                    let y = self.cursor_y + yo + yy as i32;
+                    //self.matrix.draw_pixel(x, y, self.text_color);
+                }
+                bits <<= 1;
+                bit = bit.wrapping_add(1);
+            }
+        }
+
+        self.cursor_x += glyph.advance as i32;
+    }
+}
+
+pub struct AwtrixFont;
+
+impl AwtrixFont {
+    pub fn new() -> Self {
+        AwtrixFont
+    }
+}
+
+impl TextRenderer for AwtrixFont {
+    type Color = Rgb888;
+
+    fn draw_string<D>(
+        &self,
+        text: &str,
+        position: embedded_graphics::prelude::Point,
+        baseline: embedded_graphics::text::Baseline,
+        target: &mut D,
+    ) -> Result<embedded_graphics::prelude::Point, D::Error>
+    where
+        D: embedded_graphics::prelude::DrawTarget<Color = Self::Color>,
+    {
+        let point = {
+            let mut printer = AwtrixFontInner::new();
+            printer.cursor_x = position.x;
+            printer.cursor_y = position.y;
+
+            printer.print_str(text, &mut move |x, y| {
+                target.draw_iter([Pixel(embedded_graphics::prelude::Point::new(x, y), Rgb888::WHITE)]).ok();
+            });
+            embedded_graphics::prelude::Point::new(printer.cursor_x, printer.cursor_y)
+        };
+
+        Ok(point)
+    }
+
+    fn draw_whitespace<D>(
+        &self,
+        width: u32,
+        position: embedded_graphics::prelude::Point,
+        baseline: embedded_graphics::text::Baseline,
+        target: &mut D,
+    ) -> Result<embedded_graphics::prelude::Point, D::Error>
+    where
+        D: embedded_graphics::prelude::DrawTarget<Color = Self::Color>,
+    {
+        todo!()
+    }
+
+    fn measure_string(
+        &self,
+        text: &str,
+        position: embedded_graphics::prelude::Point,
+        baseline: embedded_graphics::text::Baseline,
+    ) -> embedded_graphics::text::renderer::TextMetrics {
+        todo!()
+    }
+
+    fn line_height(&self) -> u32 {
+        todo!()
+    }
+}
+
+pub struct AwtrixFontInner {
+    pub cursor_x: i32,
+    pub cursor_y: i32,
+    pub y_advance: i32,
+}
+
+impl AwtrixFontInner {
+    pub fn new() -> Self {
+        AwtrixFontInner { cursor_x: 0, cursor_y: 0, y_advance: 0 }
+    }
+
+    pub fn print_str<'a>(&'a mut self, s: &'a str, out: &'a mut impl FnMut(i32, i32)) {
+        for c in s.chars() {
+            self.print_char(c, out);
+        }
+    }
+
+    pub fn print_char<'a>(&'a mut self, c: char, out: &'a mut impl FnMut(i32, i32)) {
+        match c {
+            '\n' => {
+                self.cursor_y += self.y_advance;
+                self.cursor_x = 0;
+                return;
+            }
+            '\r' => {
+                // optional: carriage return handling
+                return;
+            }
+            _ => {}
+        }
+
+        let glyph = AWTRIX_GLYPHS.get(&c).or_else(|| AWTRIX_GLYPHS.get(&' ')).unwrap();
+
+        let w = glyph.width as usize;
+        let h = glyph.height as usize;
+        let xo = glyph.x_offset as i32;
+        let yo = glyph.y_offset as i32;
+
+        let mut bits: u8 = 0;
+        let mut bit: u8 = 0;
+        let mut bo: usize = 0;
+
+        for yy in 0..h {
+            for xx in 0..w {
+                if (bit & 7) == 0 {
+                    // Load next byte every 8 pixels
+                    if bo < glyph.bitmap.len() {
+                        bits = glyph.bitmap[bo];
+                        bo += 1;
+                    } else {
+                        bits = 0;
+                    }
+                }
+                if (bits & 0x80) != 0 {
+                    let x = self.cursor_x + xo + xx as i32;
+                    let y = self.cursor_y + yo + yy as i32;
+                    //self.matrix.draw_pixel(x, y, self.text_color);
+                    out(x, y);
+                }
+                bits <<= 1;
+                bit = bit.wrapping_add(1);
+            }
+        }
+
+        self.cursor_x += glyph.advance as i32;
+    }
+}
