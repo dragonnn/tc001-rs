@@ -19,7 +19,7 @@ impl Time {
         self.current_time.clear();
         let now = self.rtc.current_time_us();
         let now = chrono::NaiveDateTime::from_timestamp_micros(now as i64).unwrap();
-        write!(&mut self.current_time, "{}", now.time()).ok();
+        write!(&mut self.current_time, "{}", now.time().format("%H:%M:%S")).ok();
     }
 
     pub fn render<T: super::page::PageTarget>(&self, target: &mut T) {
@@ -29,11 +29,11 @@ impl Time {
             ))
             .draw(target)
             .ok();
-        let font = embedded_graphics::mono_font::ascii::FONT_4X6;
-        let style =
-            embedded_graphics::mono_font::MonoTextStyle::new(&font, embedded_graphics::pixelcolor::Rgb888::BLUE);
-        let style = super::font::mateine(embedded_graphics::pixelcolor::Rgb888::BLUE);
-
+        //let font = embedded_graphics::mono_font::ascii::FONT_4X6;
+        //let style =
+        //    embedded_graphics::mono_font::MonoTextStyle::new(&font, embedded_graphics::pixelcolor::Rgb888::BLUE);
+        //let style = super::font::mateine(embedded_graphics::pixelcolor::Rgb888::BLUE);
+        let style = super::awtrix::AwtrixFont::new();
         embedded_graphics::text::Text::new(self.current_time.as_str(), Point::new(0, 1), style).draw(target).ok();
     }
 }

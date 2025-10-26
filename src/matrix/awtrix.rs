@@ -1,9 +1,61 @@
-/*
+/**
+** conversion from https://github.com/Blueforcer/awtrix3/blob/main/src/AwtrixFont.h
+** original license text below
+**
+** The original 3x5 font is licensed under the 3-clause BSD license:
+**
+** Copyright 1999 Brian J. Swetland
+** Copyright 1999 Vassilii Khachaturov
+** Portions (of vt100.c/vt100.h) copyright Dan Marks
+** Modifications for Awtrix for improved readability and LaMetric Style, 2023 Blueforcer
+** Cyrillic font for Awtrix by 10der (Oleg Denisenko) /Ukraine/
+** Cyrillic font tests by megadimich (Dmytro Sudakevych) /Ukraine/
+** All rights reserved.
+**
+** Redistribution and use in source and binary forms, with or without
 
-
-
-*/
-
+** All rights reserved.
+**
+** Redistribution and use in source and binary forms, with or without
+** modification, are permitted provided that the following conditions
+** are met:
+** 1. Redistributions of source code must retain the above copyright
+**    notice, this list of conditions, and the following disclaimer.
+** 2. Redistributions in binary form must reproduce the above copyright
+**    notice, this list of conditions, and the following disclaimer in the
+**    documentation and/or other materials provided with the distribution.
+** 3. The name of the authors may not be used to endorse or promote products
+**    derived from this software without specific prior written permission.
+**
+** THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+** IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+** OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+** IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+** INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+** NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+** DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+** THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+** (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+** THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+**
+** Modifications to TomThumb for improved readability are from Robey Pointer,
+** see:
+** http://robey.lag.net/2010/01/23/tiny-monospace-font.html
+**
+** Massive modifications in 2018-2023 for Awtrix for improved readability by Blueforcer
+**
+** The original author does not have any objection to relicensing of Robey
+** Pointer's modifications (in this file) in a more permissive license.  See
+** the discussion at the above blog, and also here:
+** http://opengameart.org/forumtopic/how-to-submit-art-using-the-3-clause-bsd-license
+**
+** Feb 21, 2016: Conversion from Linux BDF --> Adafruit GFX font,
+** with the help of this Python script:
+** https://gist.github.com/skelliam/322d421f028545f16f6d
+** William Skellenger (williamj@skellenger.net)
+** Twitter: @skelliam
+**
+**/
 use embedded_graphics::{pixelcolor::Rgb888, prelude::RgbColor, text::renderer::TextRenderer, Pixel};
 use phf::phf_map;
 
@@ -1811,66 +1863,6 @@ static AWTRIX_GLYPHS: phf::Map<char, AwtrixGlyph> = phf_map! {
     },
 };
 
-pub struct AwtrixGlyphPrinter {
-    pub cursor_x: i32,
-    pub cursor_y: i32,
-    pub y_advance: i32,
-    pub text_color: u32,
-}
-
-impl AwtrixGlyphPrinter {
-    pub fn print_str(s: &str, color: Rgb888) {}
-
-    pub fn print_char(&mut self, c: char) {
-        match c {
-            '\n' => {
-                self.cursor_y += self.y_advance;
-                self.cursor_x = 0;
-                return;
-            }
-            '\r' => {
-                // optional: carriage return handling
-                return;
-            }
-            _ => {}
-        }
-
-        let glyph = AWTRIX_GLYPHS.get(&c).or_else(|| AWTRIX_GLYPHS.get(&' ')).unwrap();
-
-        let w = glyph.width as usize;
-        let h = glyph.height as usize;
-        let xo = glyph.x_offset as i32;
-        let yo = glyph.y_offset as i32;
-
-        let mut bits: u8 = 0;
-        let mut bit: u8 = 0;
-        let mut bo: usize = 0;
-
-        for yy in 0..h {
-            for xx in 0..w {
-                if (bit & 7) == 0 {
-                    // Load next byte every 8 pixels
-                    if bo < glyph.bitmap.len() {
-                        bits = glyph.bitmap[bo];
-                        bo += 1;
-                    } else {
-                        bits = 0;
-                    }
-                }
-                if (bits & 0x80) != 0 {
-                    let x = self.cursor_x + xo + xx as i32;
-                    let y = self.cursor_y + yo + yy as i32;
-                    //self.matrix.draw_pixel(x, y, self.text_color);
-                }
-                bits <<= 1;
-                bit = bit.wrapping_add(1);
-            }
-        }
-
-        self.cursor_x += glyph.advance as i32;
-    }
-}
-
 pub struct AwtrixFont;
 
 impl AwtrixFont {
@@ -1886,15 +1878,12 @@ impl TextRenderer for AwtrixFont {
         &self,
         text: &str,
         position: embedded_graphics::prelude::Point,
-        baseline: embedded_graphics::text::Baseline,
+        _baseline: embedded_graphics::text::Baseline,
         target: &mut D,
     ) -> Result<embedded_graphics::prelude::Point, D::Error>
     where
         D: embedded_graphics::prelude::DrawTarget<Color = Self::Color>,
     {
-        //info!("AwtrixFont::draw_string() called with text: {}", text);
-        //info!("Position: {:?}", position);
-        //info!("Baseline: {:?}", baseline);
         let point = {
             let mut printer = AwtrixFontInner::new();
             printer.cursor_x = position.x;
@@ -1911,29 +1900,39 @@ impl TextRenderer for AwtrixFont {
 
     fn draw_whitespace<D>(
         &self,
-        width: u32,
-        position: embedded_graphics::prelude::Point,
-        baseline: embedded_graphics::text::Baseline,
-        target: &mut D,
+        _width: u32,
+        _position: embedded_graphics::prelude::Point,
+        _baseline: embedded_graphics::text::Baseline,
+        _target: &mut D,
     ) -> Result<embedded_graphics::prelude::Point, D::Error>
     where
         D: embedded_graphics::prelude::DrawTarget<Color = Self::Color>,
     {
-        todo!()
+        todo!("draw_whitespace not implemented")
     }
 
     fn measure_string(
         &self,
         text: &str,
         position: embedded_graphics::prelude::Point,
-        baseline: embedded_graphics::text::Baseline,
+        _baseline: embedded_graphics::text::Baseline,
     ) -> embedded_graphics::text::renderer::TextMetrics {
-        todo!()
+        let mut printer = AwtrixFontInner::new();
+        printer.cursor_x = position.x;
+        printer.cursor_y = position.y + 4;
+
+        printer.print_str(text, &mut move |_x, _y| {});
+        embedded_graphics::text::renderer::TextMetrics {
+            bounding_box: embedded_graphics::primitives::Rectangle::new(
+                position,
+                embedded_graphics::prelude::Size::new((printer.cursor_x - position.x) as u32, self.line_height()),
+            ),
+            next_position: embedded_graphics::prelude::Point::new(printer.cursor_x, printer.cursor_y),
+        }
     }
 
     fn line_height(&self) -> u32 {
-        //todo: fix that
-        8
+        5
     }
 }
 
