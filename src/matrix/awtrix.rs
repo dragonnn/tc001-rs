@@ -1863,11 +1863,13 @@ static AWTRIX_GLYPHS: phf::Map<char, AwtrixGlyph> = phf_map! {
     },
 };
 
-pub struct AwtrixFont;
+pub struct AwtrixFont {
+    text_color: Rgb888,
+}
 
 impl AwtrixFont {
-    pub fn new() -> Self {
-        AwtrixFont
+    pub fn new(text_color: Rgb888) -> Self {
+        AwtrixFont { text_color }
     }
 }
 
@@ -1887,10 +1889,10 @@ impl TextRenderer for AwtrixFont {
         let point = {
             let mut printer = AwtrixFontInner::new();
             printer.cursor_x = position.x;
-            printer.cursor_y = position.y + 4;
+            printer.cursor_y = position.y + self.line_height() as i32;
 
             printer.print_str(text, &mut move |x, y| {
-                target.draw_iter([Pixel(embedded_graphics::prelude::Point::new(x, y), Rgb888::WHITE)]).ok();
+                target.draw_iter([Pixel(embedded_graphics::prelude::Point::new(x, y), self.text_color)]).ok();
             });
             embedded_graphics::prelude::Point::new(printer.cursor_x, printer.cursor_y)
         };
@@ -1919,7 +1921,7 @@ impl TextRenderer for AwtrixFont {
     ) -> embedded_graphics::text::renderer::TextMetrics {
         let mut printer = AwtrixFontInner::new();
         printer.cursor_x = position.x;
-        printer.cursor_y = position.y + 4;
+        printer.cursor_y = position.y + self.line_height() as i32;
 
         printer.print_str(text, &mut move |_x, _y| {});
         embedded_graphics::text::renderer::TextMetrics {

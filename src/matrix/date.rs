@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, string::String};
 use core::fmt::Write as _;
 
-use embedded_graphics::prelude::*;
+use embedded_graphics::{pixelcolor::Rgb888, prelude::*};
 
 use super::page::Pages;
 
@@ -33,7 +33,7 @@ impl Date {
         //let font = embedded_graphics::mono_font::ascii::FONT_4X6;
         //let style = embedded_graphics::mono_font::MonoTextStyle::new(&font, embedded_graphics::pixelcolor::Rgb888::RED);
         //let style = super::font::mateine(embedded_graphics::pixelcolor::Rgb888::RED);
-        let style = super::awtrix::AwtrixFont::new();
-        embedded_graphics::text::Text::new(self.current_time.as_str(), Point::new(0, 1), style).draw(target).ok();
+        let style = super::awtrix::AwtrixFont::new(Rgb888::RED);
+        embedded_graphics::text::Text::new(self.current_time.as_str(), Point::new(0, 0), style).draw(target).ok();
     }
 }
