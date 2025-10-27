@@ -25,6 +25,8 @@ pub async fn wifi_task(mut controller: WifiController<'static>, storage: crate::
             }
             _ => {}
         }
+
+        let mut found_network = false;
         if !matches!(controller.is_started(), Ok(true)) {
             let mut client_config = ModeConfig::Client(ClientConfig::default());
             controller.set_config(&client_config).unwrap();
@@ -42,18 +44,23 @@ pub async fn wifi_task(mut controller: WifiController<'static>, storage: crate::
                     client_config =
                         ModeConfig::Client(ClientConfig::default().with_ssid(ap.ssid).with_password(password));
                     controller.set_config(&client_config).unwrap();
+                    found_network = true;
                     break;
                 }
             }
         }
         info!("About to connect...");
-
-        match controller.connect_async().await {
-            Ok(_) => info!("Wifi connected!"),
-            Err(e) => {
-                info!("Failed to connect to wifi: {e:?}");
-                Timer::after(Duration::from_millis(5000)).await
+        if found_network {
+            match controller.connect_async().await {
+                Ok(_) => info!("Wifi connected!"),
+                Err(e) => {
+                    info!("Failed to connect to wifi: {e:?}");
+                    Timer::after(Duration::from_millis(5000)).await
+                }
             }
+        } else {
+            info!("No known networks found during scan.");
+            Timer::after(Duration::from_millis(5000)).await
         }
     }
 }
