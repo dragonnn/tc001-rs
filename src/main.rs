@@ -41,6 +41,7 @@ use smart_leds::SmartLedsWriteAsync;
 use static_cell::StaticCell;
 extern crate alloc;
 
+mod adc;
 mod buttons;
 mod heap;
 mod matrix;
@@ -49,6 +50,10 @@ mod ntp;
 mod storage;
 mod udp;
 mod wifi;
+
+pub type BatteryPin =
+    esp_hal::analog::adc::AdcPin<esp_hal::peripherals::GPIO34<'static>, esp_hal::peripherals::ADC1<'static>>;
+pub type Adc = esp_hal::analog::adc::Adc<'static, esp_hal::peripherals::ADC1<'static>, esp_hal::Blocking>;
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
@@ -136,6 +141,14 @@ async fn main(spawner: Spawner) {
         Input::new(peripherals.GPIO27, InputConfig::default().with_pull(Pull::Up)),
         Input::new(peripherals.GPIO14, InputConfig::default().with_pull(Pull::Up)),
     ));
+
+    let mut adc_config = esp_hal::analog::adc::AdcConfig::default();
+
+    let battery_pin = adc_config.enable_pin(peripherals.GPIO34, esp_hal::analog::adc::Attenuation::_11dB);
+
+    let adc = esp_hal::analog::adc::Adc::new(peripherals.ADC1, adc_config);
+
+    spawner.must_spawn(adc::adc_task(adc, battery_pin));
 
     loop {
         Timer::after(Duration::from_millis(1000)).await;
