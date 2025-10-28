@@ -12,7 +12,7 @@ esp-hal = { version = "=1.0.0-rc.1", features = [
   "log-04",
   "unstable",
 ] }
-esp-hal-smartled = "0.16.0"
+esp-hal-smartled = "0.17.0"
 esp-rtos = { version = "0.1.1", features = ["esp32", "embassy", "log-04", "esp-radio"] }
 
 ekv = { git = "https://github.com/embassy-rs/ekv/", features = ["max-page-count-512"]}
@@ -108,7 +108,7 @@ overflow-checks  = false
 
 [patch.crates-io]
 #esp-hal-smartled = { git = "https://github.com/esp-rs/esp-hal-community/", branch = "main" }
-esp-hal-smartled = { path = "./esp-hal-smartled" }
+esp-hal-smartled = { git = "https://github.com/dragonnn/esp-hal-community" }
 esp-hal = { git = "https://github.com/esp-rs/esp-hal", branch = "main" }
 esp-rtos = { git = "https://github.com/esp-rs/esp-hal", branch = "main" }
 esp-bootloader-esp-idf = { git = "https://github.com/esp-rs/esp-hal/", branch = "main" }

@@ -88,7 +88,8 @@ async fn main(spawner: Spawner) {
 
     let sw_int = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
 
-    let rtc = esp_hal::rtc_cntl::Rtc::new(peripherals.LPWR);
+    let mut rtc = esp_hal::rtc_cntl::Rtc::new(peripherals.LPWR);
+    info!("estimate_xtal_frequency: {}", rtc.estimate_xtal_frequency());
     static RTC: StaticCell<esp_hal::rtc_cntl::Rtc> = StaticCell::new();
     let rtc = RTC.init(rtc);
 

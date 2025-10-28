@@ -12,8 +12,8 @@ const PASSWORD1: &str = dotenvy_macro::dotenv!("WIFI_PASSWORD1");
 pub async fn wifi_task(mut controller: WifiController<'static>, storage: crate::storage::Storage) {
     info!("start connection task");
     info!("Device capabilities: {:?}", controller.capabilities());
-    //storage.save(&crate::storage::Key::Wifi(SSID0), &PASSWORD0.to_string()).await.expect("failed saving ssid0");
-    //storage.save(&crate::storage::Key::Wifi(SSID1), &PASSWORD1.to_string()).await.expect("failed saving ssid1");
+    storage.save(&crate::storage::Key::Wifi(SSID0), &PASSWORD0.to_string()).await.expect("failed saving ssid0");
+    storage.save(&crate::storage::Key::Wifi(SSID1), &PASSWORD1.to_string()).await.expect("failed saving ssid1");
 
     loop {
         match esp_radio::wifi::sta_state() {

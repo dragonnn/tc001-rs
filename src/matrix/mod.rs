@@ -3,7 +3,11 @@ use core::fmt::Write as _;
 
 use embassy_time::Duration;
 use embedded_graphics::{prelude::*, primitives::Rectangle};
-use esp_hal::{delay::Delay, rmt::Rmt, time::Rate};
+use esp_hal::{
+    delay::Delay,
+    rmt::{PulseCode, Rmt},
+    time::Rate,
+};
 use esp_hal_smartled::SmartLedsAdapter;
 
 mod awtrix;
@@ -30,7 +34,7 @@ pub fn matrix_task(
     const BUFFER_SIZE: usize = esp_hal_smartled::buffer_size_async(NUM_LEDS);
     let rmt_channel = rmt.channel0;
     //let mut rmt_buffer = [0_u32; esp_hal_smartled::buffer_size_async(NUM_LEDS)];
-    let rmt_buffer = alloc::boxed::Box::<[u32; BUFFER_SIZE]>::new_zeroed();
+    let rmt_buffer = alloc::boxed::Box::<[PulseCode; BUFFER_SIZE]>::new_zeroed();
     let mut rmt_buffer = unsafe { rmt_buffer.assume_init() };
 
     info!("Rmt buffer initialized: {:?}", rmt_buffer.len());
