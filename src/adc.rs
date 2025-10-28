@@ -3,7 +3,7 @@ use embassy_time::{Duration, Timer};
 use esp_hal::gpio::Input;
 
 #[embassy_executor::task]
-pub async fn adc_task(mut adc: super::Adc, mut battery: super::BatteryPin) {
+pub async fn adc_task(mut adc: super::Adc, mut battery: super::BatteryPin, mut light_sensor: super::LightSensorPin) {
     loop {
         let battery_adc = adc.read_oneshot(&mut battery);
         match battery_adc {
@@ -16,7 +16,16 @@ pub async fn adc_task(mut adc: super::Adc, mut battery: super::BatteryPin) {
             Err(e) => warn!("Failed to read battery ADC: {:?}", e),
         }
 
-        Timer::after(Duration::from_secs(10)).await;
+        for i in 0..10 {
+            let light_adc = adc.read_oneshot(&mut light_sensor);
+            match light_adc {
+                Ok(value) => {
+                    info!("read {} light sensor ADC value", value);
+                }
+                Err(e) => warn!("Failed to read light sensor ADC: {:?}", e),
+            }
+            Timer::after(Duration::from_secs(1)).await;
+        }
     }
 }
 

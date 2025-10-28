@@ -53,6 +53,8 @@ mod wifi;
 
 pub type BatteryPin =
     esp_hal::analog::adc::AdcPin<esp_hal::peripherals::GPIO34<'static>, esp_hal::peripherals::ADC1<'static>>;
+pub type LightSensorPin =
+    esp_hal::analog::adc::AdcPin<esp_hal::peripherals::GPIO35<'static>, esp_hal::peripherals::ADC1<'static>>;
 pub type Adc = esp_hal::analog::adc::Adc<'static, esp_hal::peripherals::ADC1<'static>, esp_hal::Blocking>;
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
@@ -146,10 +148,11 @@ async fn main(spawner: Spawner) {
     let mut adc_config = esp_hal::analog::adc::AdcConfig::default();
 
     let battery_pin = adc_config.enable_pin(peripherals.GPIO34, esp_hal::analog::adc::Attenuation::_11dB);
+    let light_sensor_pin = adc_config.enable_pin(peripherals.GPIO35, esp_hal::analog::adc::Attenuation::_11dB);
 
     let adc = esp_hal::analog::adc::Adc::new(peripherals.ADC1, adc_config);
 
-    spawner.must_spawn(adc::adc_task(adc, battery_pin));
+    spawner.must_spawn(adc::adc_task(adc, battery_pin, light_sensor_pin));
 
     loop {
         Timer::after(Duration::from_millis(1000)).await;
