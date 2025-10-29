@@ -62,9 +62,12 @@ pub async fn ntp_task(stack: embassy_net::Stack<'static>, rtc: &'static esp_hal:
 
     let mut last_ntp_date = None;
     let mut now = Instant::now();
+    let mut ntp_error_count: u8 = 0;
     loop {
         match with_timeout(Duration::from_secs(5), ntp_request(stack.clone())).await {
             Ok(Ok(date)) => {
+                ntp_error_count = 0;
+
                 info!("NTP date: {:?}", date);
                 let rtc_now = chrono::NaiveDateTime::from_timestamp_micros(rtc.current_time_us() as i64).unwrap();
                 let rtc_delta = date.signed_duration_since(rtc_now);
@@ -87,10 +90,15 @@ pub async fn ntp_task(stack: embassy_net::Stack<'static>, rtc: &'static esp_hal:
             }
             Err(_) => {
                 error!("NTP request timed out");
+                ntp_error_count += 1;
             }
             Ok(Err(_)) => {
                 error!("NTP request failed");
+                ntp_error_count += 1;
             }
+        }
+        if ntp_error_count >= 10 {
+            esp_hal::system::software_reset();
         }
         embassy_time::Timer::after(embassy_time::Duration::from_secs(20)).await;
     }
