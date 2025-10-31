@@ -15,6 +15,7 @@ pub async fn wifi_task(mut controller: WifiController<'static>, storage: crate::
     storage.save(&crate::storage::Key::Wifi(SSID0), &PASSWORD0.to_string()).await.expect("failed saving ssid0");
     storage.save(&crate::storage::Key::Wifi(SSID1), &PASSWORD1.to_string()).await.expect("failed saving ssid1");
 
+    let mut wifi_connect_errors: u8 = 0;
     loop {
         match esp_radio::wifi::sta_state() {
             WifiStaState::Connected => {
@@ -55,12 +56,19 @@ pub async fn wifi_task(mut controller: WifiController<'static>, storage: crate::
                 Ok(_) => info!("Wifi connected!"),
                 Err(e) => {
                     info!("Failed to connect to wifi: {e:?}");
+                    wifi_connect_errors += 1;
                     Timer::after(Duration::from_millis(5000)).await
                 }
             }
         } else {
             info!("No known networks found during scan.");
+            wifi_connect_errors += 1;
             Timer::after(Duration::from_millis(5000)).await
+        }
+
+        if wifi_connect_errors >= 10 {
+            error!("Too many wifi connection errors, restarting");
+            esp_hal::system::software_reset();
         }
     }
 }
