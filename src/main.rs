@@ -78,7 +78,8 @@ async fn main(spawner: Spawner) {
     esp_alloc::heap_allocator!(#[unsafe(link_section = ".dram2_uninit")] size: 96 * 1024);
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
-    esp_rtos::start(timg0.timer0);
+    let sw_int = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
+    esp_rtos::start(timg0.timer0, sw_int.software_interrupt0);
 
     spawner.must_spawn(heap::heap_task());
 
@@ -88,8 +89,6 @@ async fn main(spawner: Spawner) {
     static APP_CORE_STACK: StaticCell<Stack<{ 8 * 1024 }>> = StaticCell::new();
     let app_core_stack = APP_CORE_STACK.init(Stack::new());
 
-    let sw_int = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
-
     let mut rtc = esp_hal::rtc_cntl::Rtc::new(peripherals.LPWR);
     info!("estimate_xtal_frequency: {}", rtc.estimate_xtal_frequency());
     static RTC: StaticCell<esp_hal::rtc_cntl::Rtc> = StaticCell::new();
@@ -97,15 +96,9 @@ async fn main(spawner: Spawner) {
 
     let rtc2 = &*rtc;
     info!("Starting second core...");
-    esp_rtos::start_second_core(
-        peripherals.CPU_CTRL,
-        sw_int.software_interrupt0,
-        sw_int.software_interrupt1,
-        app_core_stack,
-        move || {
-            matrix::matrix_task(rmt, led, rtc2);
-        },
-    );
+    esp_rtos::start_second_core(peripherals.CPU_CTRL, sw_int.software_interrupt1, app_core_stack, move || {
+        matrix::matrix_task(rmt, led, rtc2);
+    });
 
     let wifi_config = esp_radio::wifi::Config::default()
         .with_rx_queue_size(2)

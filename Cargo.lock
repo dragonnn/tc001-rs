@@ -18,12 +18,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c583acf993cf4245c4acb0a2cc2ab1f9cc097de73411bb6d3647ff6af2b1013d"
 
 [[package]]
-name = "anyhow"
-version = "1.0.100"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a23eb6b1614318a8071c9b2521f36b424b2c83db5eb3a0fead4a6c0809af6e61"
-
-[[package]]
 name = "atomic-polyfill"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -67,7 +61,7 @@ checksum = "6115af052c7914c0cbb97195e5c72cb61c511527250074f5c041d1048b0d8b16"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.108",
+ "syn 2.0.109",
 ]
 
 [[package]]
@@ -199,7 +193,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "strsim",
- "syn 2.0.108",
+ "syn 2.0.109",
 ]
 
 [[package]]
@@ -212,7 +206,7 @@ dependencies = [
  "ident_case",
  "proc-macro2",
  "quote",
- "syn 2.0.108",
+ "syn 2.0.109",
 ]
 
 [[package]]
@@ -223,7 +217,7 @@ checksum = "fc34b93ccb385b40dc71c6fceac4b2ad23662c7eeb248cf10d529b7e055b6ead"
 dependencies = [
  "darling_core 0.20.11",
  "quote",
- "syn 2.0.108",
+ "syn 2.0.109",
 ]
 
 [[package]]
@@ -234,7 +228,7 @@ checksum = "d38308df82d1080de0afee5d069fa14b0326a88c14f15c5ccda35b4a6c414c81"
 dependencies = [
  "darling_core 0.21.3",
  "quote",
- "syn 2.0.108",
+ "syn 2.0.109",
 ]
 
 [[package]]
@@ -266,7 +260,7 @@ dependencies = [
  "proc-macro-error2",
  "proc-macro2",
  "quote",
- "syn 2.0.108",
+ "syn 2.0.109",
 ]
 
 [[package]]
@@ -286,7 +280,7 @@ checksum = "6178a82cf56c836a3ba61a7935cdb1c49bfaa6fa4327cd5bf554a503087de26b"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.108",
+ "syn 2.0.109",
 ]
 
 [[package]]
@@ -380,7 +374,7 @@ dependencies = [
  "darling 0.20.11",
  "proc-macro2",
  "quote",
- "syn 2.0.108",
+ "syn 2.0.109",
 ]
 
 [[package]]
@@ -672,7 +666,7 @@ dependencies = [
  "darling 0.21.3",
  "proc-macro2",
  "quote",
- "syn 2.0.108",
+ "syn 2.0.109",
 ]
 
 [[package]]
@@ -684,7 +678,7 @@ checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 [[package]]
 name = "esp-alloc"
 version = "0.9.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#5626ac75fe44660ee15d2e42af5fb5cdc29810eb"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#d9815b205115b3403d798c28f1bfee4c9eea8fd1"
 dependencies = [
  "allocator-api2",
  "cfg-if",
@@ -699,7 +693,7 @@ dependencies = [
 [[package]]
 name = "esp-backtrace"
 version = "0.18.1"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#5626ac75fe44660ee15d2e42af5fb5cdc29810eb"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#d9815b205115b3403d798c28f1bfee4c9eea8fd1"
 dependencies = [
  "cfg-if",
  "document-features",
@@ -715,7 +709,7 @@ dependencies = [
 [[package]]
 name = "esp-bootloader-esp-idf"
 version = "0.4.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#5626ac75fe44660ee15d2e42af5fb5cdc29810eb"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#d9815b205115b3403d798c28f1bfee4c9eea8fd1"
 dependencies = [
  "cfg-if",
  "document-features",
@@ -731,7 +725,7 @@ dependencies = [
 [[package]]
 name = "esp-config"
 version = "0.6.1"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#5626ac75fe44660ee15d2e42af5fb5cdc29810eb"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#d9815b205115b3403d798c28f1bfee4c9eea8fd1"
 dependencies = [
  "document-features",
  "esp-metadata-generated",
@@ -743,7 +737,7 @@ dependencies = [
 [[package]]
 name = "esp-hal"
 version = "1.0.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#5626ac75fe44660ee15d2e42af5fb5cdc29810eb"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#d9815b205115b3403d798c28f1bfee4c9eea8fd1"
 dependencies = [
  "bitfield",
  "bitflags 2.10.0",
@@ -797,13 +791,13 @@ dependencies = [
 [[package]]
 name = "esp-hal-procmacros"
 version = "0.21.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#5626ac75fe44660ee15d2e42af5fb5cdc29810eb"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#d9815b205115b3403d798c28f1bfee4c9eea8fd1"
 dependencies = [
  "document-features",
  "proc-macro-crate",
  "proc-macro2",
  "quote",
- "syn 2.0.108",
+ "syn 2.0.109",
  "termcolor",
 ]
 
@@ -821,12 +815,12 @@ dependencies = [
 [[package]]
 name = "esp-metadata-generated"
 version = "0.3.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#5626ac75fe44660ee15d2e42af5fb5cdc29810eb"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#d9815b205115b3403d798c28f1bfee4c9eea8fd1"
 
 [[package]]
 name = "esp-phy"
 version = "0.1.1"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#5626ac75fe44660ee15d2e42af5fb5cdc29810eb"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#d9815b205115b3403d798c28f1bfee4c9eea8fd1"
 dependencies = [
  "cfg-if",
  "document-features",
@@ -834,14 +828,14 @@ dependencies = [
  "esp-hal",
  "esp-metadata-generated",
  "esp-sync",
- "esp-wifi-sys",
+ "esp-wifi-sys-esp32",
  "log",
 ]
 
 [[package]]
 name = "esp-println"
 version = "0.16.1"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#5626ac75fe44660ee15d2e42af5fb5cdc29810eb"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#d9815b205115b3403d798c28f1bfee4c9eea8fd1"
 dependencies = [
  "document-features",
  "esp-metadata-generated",
@@ -853,7 +847,7 @@ dependencies = [
 [[package]]
 name = "esp-radio"
 version = "0.17.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#5626ac75fe44660ee15d2e42af5fb5cdc29810eb"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#d9815b205115b3403d798c28f1bfee4c9eea8fd1"
 dependencies = [
  "allocator-api2",
  "cfg-if",
@@ -872,7 +866,13 @@ dependencies = [
  "esp-phy",
  "esp-radio-rtos-driver",
  "esp-sync",
- "esp-wifi-sys",
+ "esp-wifi-sys-esp32",
+ "esp-wifi-sys-esp32c2",
+ "esp-wifi-sys-esp32c3",
+ "esp-wifi-sys-esp32c6",
+ "esp-wifi-sys-esp32h2",
+ "esp-wifi-sys-esp32s2",
+ "esp-wifi-sys-esp32s3",
  "heapless 0.9.1",
  "instability",
  "log",
@@ -887,12 +887,12 @@ dependencies = [
 [[package]]
 name = "esp-radio-rtos-driver"
 version = "0.2.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#5626ac75fe44660ee15d2e42af5fb5cdc29810eb"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#d9815b205115b3403d798c28f1bfee4c9eea8fd1"
 
 [[package]]
 name = "esp-riscv-rt"
 version = "0.13.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#5626ac75fe44660ee15d2e42af5fb5cdc29810eb"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#d9815b205115b3403d798c28f1bfee4c9eea8fd1"
 dependencies = [
  "document-features",
  "riscv",
@@ -902,7 +902,7 @@ dependencies = [
 [[package]]
 name = "esp-rom-sys"
 version = "0.1.3"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#5626ac75fe44660ee15d2e42af5fb5cdc29810eb"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#d9815b205115b3403d798c28f1bfee4c9eea8fd1"
 dependencies = [
  "cfg-if",
  "document-features",
@@ -912,7 +912,7 @@ dependencies = [
 [[package]]
 name = "esp-rtos"
 version = "0.2.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#5626ac75fe44660ee15d2e42af5fb5cdc29810eb"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#d9815b205115b3403d798c28f1bfee4c9eea8fd1"
 dependencies = [
  "allocator-api2",
  "cfg-if",
@@ -934,7 +934,7 @@ dependencies = [
 [[package]]
 name = "esp-storage"
 version = "0.8.1"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#5626ac75fe44660ee15d2e42af5fb5cdc29810eb"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#d9815b205115b3403d798c28f1bfee4c9eea8fd1"
 dependencies = [
  "document-features",
  "embedded-storage",
@@ -948,7 +948,7 @@ dependencies = [
 [[package]]
 name = "esp-sync"
 version = "0.1.1"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#5626ac75fe44660ee15d2e42af5fb5cdc29810eb"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#d9815b205115b3403d798c28f1bfee4c9eea8fd1"
 dependencies = [
  "cfg-if",
  "document-features",
@@ -960,12 +960,58 @@ dependencies = [
 ]
 
 [[package]]
-name = "esp-wifi-sys"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "89b6544f6f0cb86169d1f93ba2101a8d50358a040c5043676ed86b793e09b12c"
+name = "esp-wifi-sys-esp32"
+version = "0.1.0"
+source = "git+https://github.com/esp-rs/esp-wifi-sys?rev=7623c8d#7623c8d746b55cd8d9f7473359069aef381b7d3b"
 dependencies = [
- "anyhow",
+ "log",
+]
+
+[[package]]
+name = "esp-wifi-sys-esp32c2"
+version = "0.1.0"
+source = "git+https://github.com/esp-rs/esp-wifi-sys?rev=7623c8d#7623c8d746b55cd8d9f7473359069aef381b7d3b"
+dependencies = [
+ "log",
+]
+
+[[package]]
+name = "esp-wifi-sys-esp32c3"
+version = "0.1.0"
+source = "git+https://github.com/esp-rs/esp-wifi-sys?rev=7623c8d#7623c8d746b55cd8d9f7473359069aef381b7d3b"
+dependencies = [
+ "log",
+]
+
+[[package]]
+name = "esp-wifi-sys-esp32c6"
+version = "0.1.0"
+source = "git+https://github.com/esp-rs/esp-wifi-sys?rev=7623c8d#7623c8d746b55cd8d9f7473359069aef381b7d3b"
+dependencies = [
+ "log",
+]
+
+[[package]]
+name = "esp-wifi-sys-esp32h2"
+version = "0.1.0"
+source = "git+https://github.com/esp-rs/esp-wifi-sys?rev=7623c8d#7623c8d746b55cd8d9f7473359069aef381b7d3b"
+dependencies = [
+ "log",
+]
+
+[[package]]
+name = "esp-wifi-sys-esp32s2"
+version = "0.1.0"
+source = "git+https://github.com/esp-rs/esp-wifi-sys?rev=7623c8d#7623c8d746b55cd8d9f7473359069aef381b7d3b"
+dependencies = [
+ "log",
+]
+
+[[package]]
+name = "esp-wifi-sys-esp32s3"
+version = "0.1.0"
+source = "git+https://github.com/esp-rs/esp-wifi-sys?rev=7623c8d#7623c8d746b55cd8d9f7473359069aef381b7d3b"
+dependencies = [
  "log",
 ]
 
@@ -1225,7 +1271,7 @@ dependencies = [
  "indoc",
  "proc-macro2",
  "quote",
- "syn 2.0.108",
+ "syn 2.0.109",
 ]
 
 [[package]]
@@ -1236,26 +1282,26 @@ checksum = "4a5f13b858c8d314ee3e8f639011f7ccefe71f97f96e50151fb991f267928e2c"
 
 [[package]]
 name = "jiff"
-version = "0.2.15"
+version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be1f93b8b1eb69c77f24bbb0afdf66f54b632ee39af40ca21c4365a1d7347e49"
+checksum = "49cce2b81f2098e7e3efc35bc2e0a6b7abec9d34128283d7a26fa8f32a6dbb35"
 dependencies = [
  "jiff-static",
  "log",
  "portable-atomic",
  "portable-atomic-util",
- "serde",
+ "serde_core",
 ]
 
 [[package]]
 name = "jiff-static"
-version = "0.2.15"
+version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03343451ff899767262ec32146f6d559dd759fdadf42ff0e227c7c48f72594b4"
+checksum = "980af8b43c3ad5d8d349ace167ec8170839f753a42d233ba19e08afe1850fa69"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.108",
+ "syn 2.0.109",
 ]
 
 [[package]]
@@ -1338,7 +1384,7 @@ checksum = "ed3955f1a9c7c0c15e092f9c887db08b1fc683305fdf6eb6684f22555355e202"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.108",
+ "syn 2.0.109",
 ]
 
 [[package]]
@@ -1405,7 +1451,7 @@ dependencies = [
  "phf_shared 0.13.1",
  "proc-macro2",
  "quote",
- "syn 2.0.108",
+ "syn 2.0.109",
 ]
 
 [[package]]
@@ -1471,7 +1517,7 @@ checksum = "a33fa6ec7f2047f572d49317cca19c87195de99c6e5b6ee492da701cfe02b053"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.108",
+ "syn 2.0.109",
 ]
 
 [[package]]
@@ -1524,7 +1570,7 @@ dependencies = [
  "proc-macro-error-attr2",
  "proc-macro2",
  "quote",
- "syn 2.0.108",
+ "syn 2.0.109",
 ]
 
 [[package]]
@@ -1538,9 +1584,9 @@ dependencies = [
 
 [[package]]
 name = "quote"
-version = "1.0.41"
+version = "1.0.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce25767e7b499d1b604768e7cde645d14cc8584231ea6b295e9c9eb22c02e1d1"
+checksum = "a338cc41d27e6cc6dce6cefc13a0729dfbb81c262b1f519331575dd80ef3067f"
 dependencies = [
  "proc-macro2",
 ]
@@ -1611,7 +1657,7 @@ checksum = "7d323d13972c1b104aa036bc692cd08b822c8bbf23d79a27c526095856499799"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.108",
+ "syn 2.0.109",
 ]
 
 [[package]]
@@ -1640,7 +1686,7 @@ checksum = "15c3138fdd8d128b2d81829842a3e0ce771b3712f7b6318ed1476b0695e7d330"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.108",
+ "syn 2.0.109",
 ]
 
 [[package]]
@@ -1738,7 +1784,7 @@ checksum = "d540f220d3187173da220f885ab66608367b6574e925011a9353e4badda91d79"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.108",
+ "syn 2.0.109",
 ]
 
 [[package]]
@@ -1889,7 +1935,7 @@ dependencies = [
  "heck",
  "proc-macro2",
  "quote",
- "syn 2.0.108",
+ "syn 2.0.109",
 ]
 
 [[package]]
@@ -1918,9 +1964,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.108"
+version = "2.0.109"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da58917d35242480a05c2897064da0a80589a2a0476c9a3f2fdc83b53502e917"
+checksum = "2f17c7e013e88258aa9543dcbe81aca68a667a9ac37cd69c9fbc07858bfe0e2f"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1995,7 +2041,7 @@ checksum = "3ff15c8ecd7de3849db632e14d18d2571fa09dfc5ed93479bc4485c7a517c913"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.108",
+ "syn 2.0.109",
 ]
 
 [[package]]
@@ -2124,7 +2170,7 @@ dependencies = [
 [[package]]
 name = "xtensa-lx"
 version = "0.13.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#5626ac75fe44660ee15d2e42af5fb5cdc29810eb"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#d9815b205115b3403d798c28f1bfee4c9eea8fd1"
 dependencies = [
  "critical-section",
 ]
@@ -2132,7 +2178,7 @@ dependencies = [
 [[package]]
 name = "xtensa-lx-rt"
 version = "0.21.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#5626ac75fe44660ee15d2e42af5fb5cdc29810eb"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#d9815b205115b3403d798c28f1bfee4c9eea8fd1"
 dependencies = [
  "document-features",
  "xtensa-lx",
@@ -2142,11 +2188,11 @@ dependencies = [
 [[package]]
 name = "xtensa-lx-rt-proc-macros"
 version = "0.5.0"
-source = "git+https://github.com/esp-rs/esp-hal/?branch=main#5626ac75fe44660ee15d2e42af5fb5cdc29810eb"
+source = "git+https://github.com/esp-rs/esp-hal/?branch=main#d9815b205115b3403d798c28f1bfee4c9eea8fd1"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.108",
+ "syn 2.0.109",
 ]
 
 [[package]]
@@ -2166,5 +2212,5 @@ checksum = "88d2b8d9c68ad2b9e4340d7832716a4d21a22a1154777ad56ea55c51a9cf3831"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.108",
+ "syn 2.0.109",
 ]
