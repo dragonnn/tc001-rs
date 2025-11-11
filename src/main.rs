@@ -56,6 +56,7 @@ pub type BatteryPin =
 pub type LightSensorPin =
     esp_hal::analog::adc::AdcPin<esp_hal::peripherals::GPIO35<'static>, esp_hal::peripherals::ADC1<'static>>;
 pub type Adc = esp_hal::analog::adc::Adc<'static, esp_hal::peripherals::ADC1<'static>, esp_hal::Blocking>;
+pub type Wdt0 = esp_hal::timer::timg::Wdt<esp_hal::peripherals::TIMG0<'static>>;
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
@@ -78,6 +79,9 @@ async fn main(spawner: Spawner) {
     esp_alloc::heap_allocator!(#[unsafe(link_section = ".dram2_uninit")] size: 96 * 1024);
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
+    let mut wdt0 = timg0.wdt;
+    wdt0.set_timeout(esp_hal::timer::timg::MwdtStage::Stage0, esp_hal::time::Duration::from_millis(500));
+    wdt0.enable();
     let sw_int = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
     esp_rtos::start(timg0.timer0, sw_int.software_interrupt0);
 
@@ -97,7 +101,7 @@ async fn main(spawner: Spawner) {
     let rtc2 = &*rtc;
     info!("Starting second core...");
     esp_rtos::start_second_core(peripherals.CPU_CTRL, sw_int.software_interrupt1, app_core_stack, move || {
-        matrix::matrix_task(rmt, led, rtc2);
+        matrix::matrix_task(rmt, led, rtc2, wdt0);
     });
 
     let wifi_config = esp_radio::wifi::Config::default()

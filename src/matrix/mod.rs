@@ -20,6 +20,7 @@ pub fn matrix_task(
     rmt: esp_hal::peripherals::RMT<'static>,
     mut led: esp_hal::peripherals::GPIO32<'static>,
     rtc: &'static esp_hal::rtc_cntl::Rtc<'static>,
+    mut wdt0: crate::Wdt0,
 ) {
     //let led = Output::new(led, Level::High, OutputConfig::default());
     info!("Rmt initializing...");
@@ -68,43 +69,58 @@ pub fn matrix_task(
     let mut current_page_instant = embassy_time::Instant::now();
 
     loop {
+        wdt0.feed();
         current_page.update();
         current_page.render(&mut matrix);
         let now = embassy_time::Instant::now();
         loop {
             matrix.flush_with_gamma().ok();
+            wdt0.feed();
             Delay::new().delay_millis(50);
-            if embassy_time::Instant::now() - now >= Duration::from_millis(100) {
+            let now2 = embassy_time::Instant::now();
+            if let Some(elapsed) = now2.checked_duration_since(now) {
+                if elapsed >= Duration::from_millis(100) {
+                    break;
+                }
+            } else {
+                warn!("Time went backwards!");
                 break;
             }
         }
 
-        if current_page_instant.elapsed() >= Duration::from_secs(10) {
-            let mut new_page = match current_page {
-                page::Pages::Time(_) => date::Date::new(rtc),
-                page::Pages::Date(_) => time::Time::new(rtc),
-            };
+        let now = embassy_time::Instant::now();
+        if let Some(elapsed) = now.checked_duration_since(current_page_instant) {
+            if elapsed >= Duration::from_secs(10) {
+                let mut new_page = match current_page {
+                    page::Pages::Time(_) => date::Date::new(rtc),
+                    page::Pages::Date(_) => time::Time::new(rtc),
+                };
 
-            new_page.update();
+                new_page.update();
 
-            for i in (0..matrix.size().width).rev() {
-                let current_page_offset = Point::new(i as i32 - matrix.size().width as i32, 0);
-                let new_page_offset = Point::new(i as i32, 0);
+                for i in (0..matrix.size().width).rev() {
+                    let current_page_offset = Point::new(i as i32 - matrix.size().width as i32, 0);
+                    let new_page_offset = Point::new(i as i32, 0);
 
-                {
-                    let mut current_page_target = matrix.translated(current_page_offset);
-                    current_page.render(&mut current_page_target);
+                    {
+                        let mut current_page_target = matrix.translated(current_page_offset);
+                        current_page.render(&mut current_page_target);
+                    }
+                    {
+                        let mut new_page_target = matrix.translated(new_page_offset);
+                        new_page.render(&mut new_page_target);
+                    }
+
+                    matrix.flush_with_gamma().ok();
+                    wdt0.feed();
+                    Delay::new().delay_millis(25);
                 }
-                {
-                    let mut new_page_target = matrix.translated(new_page_offset);
-                    new_page.render(&mut new_page_target);
-                }
 
-                matrix.flush_with_gamma().ok();
-                Delay::new().delay_millis(25);
+                current_page = new_page;
+                current_page_instant = embassy_time::Instant::now();
             }
-
-            current_page = new_page;
+        } else {
+            warn!("Time went backwards!");
             current_page_instant = embassy_time::Instant::now();
         }
     }

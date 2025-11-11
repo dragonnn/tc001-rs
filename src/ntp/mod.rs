@@ -1,5 +1,5 @@
 use embassy_net::IpEndpoint;
-use embassy_time::{with_timeout, Duration, Instant};
+use embassy_time::{with_timeout, Duration, Instant, Timer};
 
 use crate::udp::UdpBuffers;
 
@@ -59,6 +59,7 @@ async fn ntp_request(stack: embassy_net::Stack<'static>) -> Result<chrono::Naive
 #[embassy_executor::task]
 pub async fn ntp_task(stack: embassy_net::Stack<'static>, rtc: &'static esp_hal::rtc_cntl::Rtc<'static>) {
     crate::wifi::wait_for_connection(&stack).await;
+    Timer::after_secs(5).await;
 
     let mut last_ntp_date = None;
     let mut now = Instant::now();
