@@ -17,7 +17,7 @@ use core::fmt::Write;
 use embassy_executor::Spawner;
 use embassy_net::StackResources;
 use embassy_time::{Duration, Timer};
-use embedded_graphics::{prelude::*, Drawable};
+use embedded_graphics::{Drawable, prelude::*};
 use esp_backtrace as _;
 use esp_hal::{
     clock::CpuClock,
@@ -31,10 +31,7 @@ use esp_hal::{
     timer::timg::TimerGroup,
 };
 use esp_hal_smartled::{SmartLedsAdapter, SmartLedsAdapterAsync};
-use esp_radio::{
-    wifi::{ClientConfig, Config, ModeConfig, ScanConfig, WifiController, WifiDevice, WifiEvent, WifiStaState},
-    Controller,
-};
+use esp_radio::Controller;
 use esp_rtos::embassy::{Executor, InterruptExecutor};
 use log::{error, info};
 use smart_leds::SmartLedsWriteAsync;

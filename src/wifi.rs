@@ -1,7 +1,7 @@
 use alloc::string::{String, ToString};
 
 use embassy_time::{Duration, Timer};
-use esp_radio::wifi::{ClientConfig, ModeConfig, ScanConfig, WifiController, WifiDevice, WifiEvent, WifiStaState};
+use esp_radio::wifi::{ModeConfig, ScanConfig, WifiController, WifiDevice, WifiEvent, WifiStaState, sta::ClientConfig};
 
 const SSID0: &str = dotenvy_macro::dotenv!("WIFI_SSID0");
 const PASSWORD0: &str = dotenvy_macro::dotenv!("WIFI_PASSWORD0");
