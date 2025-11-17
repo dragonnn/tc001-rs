@@ -49,7 +49,7 @@ pub fn matrix_task(
         smart_leds_matrix::layout::Rectangular::new_tc001(32, 8),
     );
     info!("Matrix initialized.");
-    matrix.set_brightness(32);
+    matrix.set_brightness(1);
     info!("Matrix brightness set.");
 
     let style = embedded_graphics::mono_font::MonoTextStyle::new(

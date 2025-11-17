@@ -75,6 +75,9 @@ async fn main(spawner: Spawner) {
     let output_config = esp_hal::gpio::OutputConfig::default();
     let buzzer = Output::new(peripherals.GPIO15, Level::Low, OutputConfig::default());
 
+    //6 - SDA GPIO21
+    //7 - SCL GPIO22
+
     info!("Heap initialized");
     esp_alloc::heap_allocator!(#[unsafe(link_section = ".dram2_uninit")] size: 96 * 1024);
 
