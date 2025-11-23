@@ -32,7 +32,6 @@ use esp_hal::{
     timer::timg::TimerGroup,
 };
 use esp_hal_smartled::{SmartLedsAdapter, SmartLedsAdapterAsync};
-use esp_radio::Controller;
 use esp_rtos::embassy::{Executor, InterruptExecutor};
 use log::{error, info};
 use smart_leds::SmartLedsWriteAsync;
@@ -134,10 +133,10 @@ async fn main(spawner: Spawner) {
         .with_static_tx_buf_num(1)
         .with_rx_ba_win(3);
 
-    let esp_radio_ctrl = &*mk_static::mk_static!(Controller<'static>, esp_radio::init().unwrap());
+    //let esp_radio_ctrl = &*mk_static::mk_static!(Controller<'static>, esp_radio::init().unwrap());
 
-    let (wifi_controller, interfaces) = esp_radio::wifi::new(&esp_radio_ctrl, peripherals.WIFI, wifi_config)
-        .expect("Failed to initialize WIFI controller");
+    let (wifi_controller, interfaces) =
+        esp_radio::wifi::new(peripherals.WIFI, wifi_config).expect("Failed to initialize WIFI controller");
 
     let wifi_interface = interfaces.sta;
 
