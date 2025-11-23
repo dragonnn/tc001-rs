@@ -17,12 +17,13 @@ use core::fmt::Write;
 use embassy_executor::Spawner;
 use embassy_net::StackResources;
 use embassy_time::{Duration, Timer};
-use embedded_graphics::{Drawable, prelude::*};
+use embedded_graphics::{prelude::*, Drawable};
 use esp_backtrace as _;
 use esp_hal::{
     clock::CpuClock,
     delay::Delay,
     gpio::{Input, InputConfig, Level, Output, OutputConfig, Pull},
+    i2c::master::I2c,
     interrupt::software::SoftwareInterruptControl,
     rmt::Rmt,
     rng::Rng,
@@ -40,6 +41,7 @@ extern crate alloc;
 
 mod adc;
 mod buttons;
+mod ds1307;
 mod heap;
 mod matrix;
 mod mk_static;
@@ -54,6 +56,10 @@ pub type LightSensorPin =
     esp_hal::analog::adc::AdcPin<esp_hal::peripherals::GPIO35<'static>, esp_hal::peripherals::ADC1<'static>>;
 pub type Adc = esp_hal::analog::adc::Adc<'static, esp_hal::peripherals::ADC1<'static>, esp_hal::Blocking>;
 pub type Wdt0 = esp_hal::timer::timg::Wdt<esp_hal::peripherals::TIMG0<'static>>;
+pub type I2c0 = embassy_sync::mutex::Mutex<
+    embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex,
+    I2c<'static, esp_hal::Async>,
+>;
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
@@ -74,6 +80,23 @@ async fn main(spawner: Spawner) {
 
     //6 - SDA GPIO21
     //7 - SCL GPIO22
+    let sda = peripherals.GPIO21;
+    let scl = peripherals.GPIO22;
+
+    let i2c_config = esp_hal::i2c::master::Config::default().with_frequency(Rate::from_khz(100));
+
+    let i2c0 = &*mk_static::mk_static!(
+        I2c0,
+        embassy_sync::mutex::Mutex::new(
+            esp_hal::i2c::master::I2c::new(peripherals.I2C0, i2c_config)
+                .unwrap()
+                .with_scl(scl)
+                .with_sda(sda)
+                .into_async()
+        )
+    );
+
+    spawner.must_spawn(ds1307::ds1307_task(i2c0));
 
     info!("Heap initialized");
     esp_alloc::heap_allocator!(#[unsafe(link_section = ".dram2_uninit")] size: 96 * 1024);
@@ -135,12 +158,12 @@ async fn main(spawner: Spawner) {
     spawner.must_spawn(wifi::wifi_task(wifi_controller, *&storage));
     spawner.must_spawn(wifi::net_task(runner));
 
+    let left = Input::new(peripherals.GPIO26, InputConfig::default().with_pull(Pull::Up));
+    let right = Input::new(peripherals.GPIO27, InputConfig::default().with_pull(Pull::Up));
+    let middle = Input::new(peripherals.GPIO14, InputConfig::default().with_pull(Pull::Up));
+
     spawner.must_spawn(ntp::ntp_task(stack, rtc2));
-    spawner.must_spawn(buttons::button_task(
-        Input::new(peripherals.GPIO26, InputConfig::default().with_pull(Pull::Up)),
-        Input::new(peripherals.GPIO27, InputConfig::default().with_pull(Pull::Up)),
-        Input::new(peripherals.GPIO14, InputConfig::default().with_pull(Pull::Up)),
-    ));
+    spawner.must_spawn(buttons::button_task(left, right, middle));
 
     let mut adc_config = esp_hal::analog::adc::AdcConfig::default();
 
