@@ -138,7 +138,7 @@ async fn main(spawner: Spawner) {
     let (wifi_controller, interfaces) =
         esp_radio::wifi::new(peripherals.WIFI, wifi_config).expect("Failed to initialize WIFI controller");
 
-    let wifi_interface = interfaces.sta;
+    let wifi_interface = interfaces.station;
 
     let config = embassy_net::Config::dhcpv4(Default::default());
 

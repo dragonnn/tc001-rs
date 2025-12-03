@@ -1,7 +1,9 @@
 use alloc::string::{String, ToString};
 
 use embassy_time::{Duration, Timer};
-use esp_radio::wifi::{ModeConfig, ScanConfig, WifiController, WifiDevice, WifiEvent, WifiStaState, sta::ClientConfig};
+use esp_radio::wifi::{
+    sta::StationConfig, ModeConfig, ScanConfig, WifiController, WifiDevice, WifiEvent, WifiStationState,
+};
 
 const SSID0: &str = dotenvy_macro::dotenv!("WIFI_SSID0");
 const PASSWORD0: &str = dotenvy_macro::dotenv!("WIFI_PASSWORD0");
@@ -17,10 +19,10 @@ pub async fn wifi_task(mut controller: WifiController<'static>, storage: crate::
 
     let mut wifi_connect_errors: u8 = 0;
     loop {
-        match esp_radio::wifi::sta_state() {
-            WifiStaState::Connected => {
+        match esp_radio::wifi::station_state() {
+            WifiStationState::Connected => {
                 // wait until we're no longer connected
-                controller.wait_for_event(WifiEvent::StaDisconnected).await;
+                controller.wait_for_event(WifiEvent::StationDisconnected).await;
                 error!("WiFi disconnected!");
                 Timer::after(Duration::from_millis(5000)).await
             }
@@ -29,7 +31,7 @@ pub async fn wifi_task(mut controller: WifiController<'static>, storage: crate::
 
         let mut found_network = false;
         if !matches!(controller.is_started(), Ok(true)) {
-            let mut client_config = ModeConfig::Client(ClientConfig::default());
+            let mut client_config = ModeConfig::Station(StationConfig::default());
             controller.set_config(&client_config).unwrap();
             info!("Starting wifi");
             controller.start_async().await.unwrap();
@@ -43,7 +45,7 @@ pub async fn wifi_task(mut controller: WifiController<'static>, storage: crate::
                 if let Ok(password) = storage.read::<String>(&crate::storage::Key::Wifi(&ap.ssid)).await {
                     info!("Found saved network: {}, trying to connect...", ap.ssid);
                     client_config =
-                        ModeConfig::Client(ClientConfig::default().with_ssid(ap.ssid).with_password(password));
+                        ModeConfig::Station(StationConfig::default().with_ssid(ap.ssid).with_password(password));
                     controller.set_config(&client_config).unwrap();
                     found_network = true;
                     break;
