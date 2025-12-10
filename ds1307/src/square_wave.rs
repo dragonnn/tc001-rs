@@ -559,3 +559,69 @@ mod tests {
         i2c_mock.done();
     }
 }
+//! Async square wave control.
+
+pub use crate::async_api::{AsyncSquareWave, SquareWaveFreq};
+
+use crate::{Ds1307, error::Error, registers::{Register, OUT_BIT, RS_MASK, SQWE_BIT}};
+
+fn freq_to_bits<E>(freq: SquareWaveFreq) -> Result<u8, Error<E>>
+where
+    E: core::fmt::Debug,
+{
+    match freq {
+        SquareWaveFreq::Hz1 => Ok(0b0000_0000),
+        SquareWaveFreq::Hz4096 => Ok(0b0000_0001),
+        SquareWaveFreq::Hz8192 => Ok(0b0000_0010),
+        SquareWaveFreq::Hz32768 => Ok(0b0000_0011),
+        _ => Err(Error::UnsupportedSqwFrequency),
+    }
+}
+
+impl<I2C> AsyncSquareWave for Ds1307<I2C>
+where
+    I2C: embedded_hal_async::i2c::I2c,
+    <I2C as embedded_hal_async::i2c::I2c>::Error: core::fmt::Debug,
+{
+    async fn start_square_wave(&mut self, freq: SquareWaveFreq) -> Result<(), Self::Error> {
+        let rs_bits = freq_to_bits::<I2C::Error>(freq)?;
+        let current = self.read_register(Register::Control).await?;
+        let mut new_value = current & !RS_MASK | rs_bits;
+        new_value |= SQWE_BIT;
+        new_value &= !OUT_BIT;
+        if new_value != current {
+            self.write_register(Register::Control, new_value).await
+        } else {
+            Ok(())
+        }
+    }
+
+    async fn enable_square_wave(&mut self) -> Result<(), Self::Error> {
+        let current = self.read_register(Register::Control).await?;
+        let mut new_value = current | SQWE_BIT;
+        new_value &= !OUT_BIT;
+        if new_value != current {
+            self.write_register(Register::Control, new_value).await
+        } else {
+            Ok(())
+        }
+    }
+
+    async fn disable_square_wave(&mut self) -> Result<(), Self::Error> {
+        self.clear_register_bits(Register::Control, SQWE_BIT).await
+    }
+
+    async fn set_square_wave_frequency(
+        &mut self,
+        freq: SquareWaveFreq,
+    ) -> Result<(), Self::Error> {
+        let rs_bits = freq_to_bits::<I2C::Error>(freq)?;
+        let current = self.read_register(Register::Control).await?;
+        let mut new_value = (current & !RS_MASK) | rs_bits;
+        if new_value != current {
+            self.write_register(Register::Control, new_value).await
+        } else {
+            Ok(())
+        }
+    }
+}

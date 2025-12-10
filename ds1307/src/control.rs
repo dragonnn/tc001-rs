@@ -37,10 +37,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::registers::{CH_BIT, Register};
     use embedded_hal_mock::eh1::i2c::{Mock as I2cMock, Transaction as I2cTransaction};
     use rtc_hal::control::RtcPowerControl;
+
+    use super::*;
+    use crate::registers::{CH_BIT, Register};
 
     const DS1307_ADDR: u8 = 0x68;
 
@@ -91,11 +92,7 @@ mod tests {
     fn test_start_clock_preserves_seconds_value() {
         let expectations = vec![
             // Read seconds register with time value and CH bit set
-            I2cTransaction::write_read(
-                DS1307_ADDR,
-                vec![Register::Seconds.addr()],
-                vec![0b0010_1010 | CH_BIT],
-            ),
+            I2cTransaction::write_read(DS1307_ADDR, vec![Register::Seconds.addr()], vec![0b0010_1010 | CH_BIT]),
             // Write back preserving seconds value but clearing CH bit
             I2cTransaction::write(
                 DS1307_ADDR,
@@ -261,11 +258,7 @@ mod tests {
             I2cTransaction::write_read(DS1307_ADDR, vec![Register::Seconds.addr()], vec![CH_BIT]),
             I2cTransaction::write(DS1307_ADDR, vec![Register::Seconds.addr(), 0b0000_0000]),
             // halt_clock() call
-            I2cTransaction::write_read(
-                DS1307_ADDR,
-                vec![Register::Seconds.addr()],
-                vec![0b0000_0000],
-            ),
+            I2cTransaction::write_read(DS1307_ADDR, vec![Register::Seconds.addr()], vec![0b0000_0000]),
             I2cTransaction::write(DS1307_ADDR, vec![Register::Seconds.addr(), CH_BIT]),
             // Second start_clock() call
             I2cTransaction::write_read(DS1307_ADDR, vec![Register::Seconds.addr()], vec![CH_BIT]),
@@ -334,11 +327,7 @@ mod tests {
     #[test]
     fn test_power_control_with_valid_bcd_seconds() {
         let expectations = vec![
-            I2cTransaction::write_read(
-                DS1307_ADDR,
-                vec![Register::Seconds.addr()],
-                vec![0b0010_0101 | CH_BIT],
-            ),
+            I2cTransaction::write_read(DS1307_ADDR, vec![Register::Seconds.addr()], vec![0b0010_0101 | CH_BIT]),
             I2cTransaction::write(
                 DS1307_ADDR,
                 vec![Register::Seconds.addr(), 0b0010_0101], // 25 seconds preserved, CH cleared
@@ -362,5 +351,22 @@ mod tests {
         assert!(ds1307.halt_clock().is_ok());
 
         i2c_mock.done();
+    }
+}
+// Async power control (oscillator start/stop)
+
+pub use crate::async_api::AsyncRtcPowerControl;
+
+impl<I2C> AsyncRtcPowerControl for Ds1307<I2C>
+where
+    I2C: embedded_hal_async::i2c::I2c,
+    <I2C as embedded_hal_async::i2c::I2c>::Error: core::fmt::Debug,
+{
+    async fn start_clock(&mut self) -> Result<(), Self::Error> {
+        self.clear_register_bits(Register::Seconds, CH_BIT).await
+    }
+
+    async fn halt_clock(&mut self) -> Result<(), Self::Error> {
+        self.set_register_bits(Register::Seconds, CH_BIT).await
     }
 }

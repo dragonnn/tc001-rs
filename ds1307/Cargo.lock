@@ -47,13 +47,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "ds1307-rtc"
-version = "0.2.4"
+name = "ds1307"
+version = "0.3.0"
 dependencies = [
  "defmt",
  "embedded-hal 1.0.0",
+ "embedded-hal-async",
  "embedded-hal-mock",
  "rtc-hal",
+ "tokio",
 ]
 
 [[package]]
@@ -73,6 +75,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "361a90feb7004eca4019fb28352a9465666b24f840f5c3cddf0ff13920590b89"
 
 [[package]]
+name = "embedded-hal-async"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c4c685bbef7fe13c3c6dd4da26841ed3980ef33e841cddfa15ce8a8fb3f1884"
+dependencies = [
+ "embedded-hal 1.0.0",
+]
+
+[[package]]
 name = "embedded-hal-mock"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -80,6 +91,7 @@ checksum = "f9a0f04f8886106faf281c47b6a0e4054a369baedaf63591fdb8da9761f3f379"
 dependencies = [
  "embedded-hal 0.2.7",
  "embedded-hal 1.0.0",
+ "embedded-hal-async",
  "embedded-hal-nb",
  "embedded-time",
  "nb 1.1.0",
@@ -183,6 +195,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "pin-project-lite"
+version = "0.2.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b3cff922bd51709b605d9ead9aa71031d81447142d828eb4a6eba76fe619f9b"
+
+[[package]]
 name = "proc-macro-error-attr2"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -256,6 +274,27 @@ name = "thiserror-impl"
 version = "2.0.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c5e1be1c48b9172ee610da68fd9cd2770e7a4056cb3fc98710ee6906f0c7960"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "tokio"
+version = "1.48.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ff360e02eab121e0bc37a2d3b4d4dc622e6eda3a8e5253d5435ecf5bd4c68408"
+dependencies = [
+ "pin-project-lite",
+ "tokio-macros",
+]
+
+[[package]]
+name = "tokio-macros"
+version = "2.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af407857209536a95c8e56f8231ef2c2e2aff839b22e07a1ffcbc617e9db9fa5"
 dependencies = [
  "proc-macro2",
  "quote",

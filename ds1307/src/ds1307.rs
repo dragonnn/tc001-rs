@@ -1,11 +1,14 @@
 //! # DS1307 Real-Time Clock Driver
 
+//! Async DS1307 driver using embedded-hal-async.
+
+use embedded_hal_async::i2c::I2c;
+
 use crate::{
     error::Error,
     registers::{NVRAM_SIZE, OUT_BIT, Register, SQWE_BIT},
 };
 
-/// DS1307 I2C device address (fixed)
 pub const I2C_ADDR: u8 = 0x68;
 
 /// DS1307 Real-Time Clock driver
@@ -13,15 +16,7 @@ pub struct Ds1307<I2C> {
     i2c: I2C,
 }
 
-impl<I2C: embedded_hal::i2c::I2c> rtc_hal::error::ErrorType for Ds1307<I2C> {
-    type Error = crate::error::Error<I2C::Error>;
-}
-
-impl<I2C, E> Ds1307<I2C>
-where
-    I2C: embedded_hal::i2c::I2c<Error = E>,
-    E: core::fmt::Debug,
-{
+impl<I2C> Ds1307<I2C> {
     /// Create a new DS1307 driver instance
     ///
     /// # Parameters
@@ -44,48 +39,60 @@ where
     pub fn release_i2c(self) -> I2C {
         self.i2c
     }
+}
 
+impl<I2C> rtc_hal::error::ErrorType for Ds1307<I2C>
+where
+    I2C: I2c,
+{
+    type Error = Error<<I2C as I2c>::Error>;
+}
+
+impl<I2C> Ds1307<I2C>
+where
+    I2C: I2c,
+    <I2C as I2c>::Error: core::fmt::Debug,
+{
     /// Write a single byte to a DS1307 register
-    pub(crate) fn write_register(&mut self, register: Register, value: u8) -> Result<(), Error<E>> {
-        self.i2c.write(I2C_ADDR, &[register.addr(), value])?;
+    pub(crate) async fn write_register(&mut self, register: Register, value: u8) -> Result<(), Error<I2C::Error>> {
+        self.i2c.write(I2C_ADDR, &[register.addr(), value]).await?;
 
         Ok(())
     }
 
     /// Read a single byte from a DS1307 register
-    pub(crate) fn read_register(&mut self, register: Register) -> Result<u8, Error<E>> {
+    pub(crate) async fn read_register(&mut self, register: Register) -> Result<u8, Error<I2C::Error>> {
         let mut data = [0u8; 1];
-        self.i2c
-            .write_read(I2C_ADDR, &[register.addr()], &mut data)?;
+        self.i2c.write_read(I2C_ADDR, &[register.addr()], &mut data).await?;
 
         Ok(data[0])
     }
 
     /// Read multiple bytes from DS1307 starting at a register
-    pub(crate) fn read_register_bytes(
+    pub(crate) async fn read_register_bytes(
         &mut self,
         register: Register,
         buffer: &mut [u8],
-    ) -> Result<(), Error<E>> {
-        self.i2c.write_read(I2C_ADDR, &[register.addr()], buffer)?;
+    ) -> Result<(), Error<I2C::Error>> {
+        self.i2c.write_read(I2C_ADDR, &[register.addr()], buffer).await?;
 
         Ok(())
     }
 
     /// Read multiple bytes from DS1307 starting at a raw address
-    pub(crate) fn read_bytes_at_address(
+    pub(crate) async fn read_bytes_at_address(
         &mut self,
         register_addr: u8,
         buffer: &mut [u8],
-    ) -> Result<(), Error<E>> {
-        self.i2c.write_read(I2C_ADDR, &[register_addr], buffer)?;
+    ) -> Result<(), Error<I2C::Error>> {
+        self.i2c.write_read(I2C_ADDR, &[register_addr], buffer).await?;
 
         Ok(())
     }
 
     /// Write raw bytes directly to DS1307 via I2C (register address must be first byte)
-    pub(crate) fn write_raw_bytes(&mut self, data: &[u8]) -> Result<(), Error<E>> {
-        self.i2c.write(I2C_ADDR, data)?;
+    pub(crate) async fn write_raw_bytes(&mut self, data: &[u8]) -> Result<(), Error<I2C::Error>> {
+        self.i2c.write(I2C_ADDR, data).await?;
 
         Ok(())
     }
@@ -109,18 +116,10 @@ where
     /// # I2C Operations
     /// - 1 read + 1 write (if change needed)
     /// - 1 read only (if no change needed)
-    pub(crate) fn set_register_bits(
-        &mut self,
-        register: Register,
-        mask: u8,
-    ) -> Result<(), Error<E>> {
-        let current = self.read_register(register)?;
+    pub(crate) async fn set_register_bits(&mut self, register: Register, mask: u8) -> Result<(), Error<I2C::Error>> {
+        let current = self.read_register(register).await?;
         let new_value = current | mask;
-        if new_value != current {
-            self.write_register(register, new_value)
-        } else {
-            Ok(())
-        }
+        if new_value != current { self.write_register(register, new_value).await } else { Ok(()) }
     }
 
     /// Read-modify-write operation for clearing bits
@@ -142,50 +141,34 @@ where
     /// # I2C Operations
     /// - 1 read + 1 write (if change needed)
     /// - 1 read only (if no change needed)
-    pub(crate) fn clear_register_bits(
-        &mut self,
-        register: Register,
-        mask: u8,
-    ) -> Result<(), Error<E>> {
-        let current = self.read_register(register)?;
+    pub(crate) async fn clear_register_bits(&mut self, register: Register, mask: u8) -> Result<(), Error<I2C::Error>> {
+        let current = self.read_register(register).await?;
         let new_value = current & !mask;
-        if new_value != current {
-            self.write_register(register, new_value)
-        } else {
-            Ok(())
-        }
+        if new_value != current { self.write_register(register, new_value).await } else { Ok(()) }
     }
 
     /// Set the output pin to a static high state
-    pub fn set_output_high(&mut self) -> Result<(), Error<E>> {
-        let current = self.read_register(Register::Control)?;
+    pub async fn set_output_high(&mut self) -> Result<(), Error<I2C::Error>> {
+        let current = self.read_register(Register::Control).await?;
         let mut new_value = current;
 
         // Disable square wave and set OUT bit high
         new_value &= !SQWE_BIT;
         new_value |= OUT_BIT;
 
-        if new_value != current {
-            self.write_register(Register::Control, new_value)
-        } else {
-            Ok(())
-        }
+        if new_value != current { self.write_register(Register::Control, new_value).await } else { Ok(()) }
     }
 
     /// Set the output pin to a static low state
-    pub fn set_output_low(&mut self) -> Result<(), Error<E>> {
-        let current = self.read_register(Register::Control)?;
+    pub async fn set_output_low(&mut self) -> Result<(), Error<I2C::Error>> {
+        let current = self.read_register(Register::Control).await?;
         let mut new_value = current;
 
         // Disable square wave and set OUT bit low
         new_value &= !SQWE_BIT;
         new_value &= !OUT_BIT;
 
-        if new_value != current {
-            self.write_register(Register::Control, new_value)
-        } else {
-            Ok(())
-        }
+        if new_value != current { self.write_register(Register::Control, new_value).await } else { Ok(()) }
     }
 
     /// Validate NVRAM offset and length parameters before accessing memory.
@@ -193,7 +176,7 @@ where
     /// Returns an error if:
     /// - The starting offset is outside the available NVRAM range
     /// - The requested length goes beyond the end of NVRAM
-    pub(crate) fn validate_nvram_bounds(&self, offset: u8, len: usize) -> Result<(), Error<E>> {
+    pub(crate) fn validate_nvram_bounds(&self, offset: u8, len: usize) -> Result<(), Error<I2C::Error>> {
         // Check if offset is within bounds
         if offset >= NVRAM_SIZE {
             return Err(Error::NvramOutOfBounds);
@@ -211,9 +194,10 @@ where
 
 #[cfg(test)]
 mod tests {
+    use embedded_hal_mock::eh1::i2c::{Mock as I2cMock, Transaction as I2cTransaction};
+
     use super::*;
     use crate::registers::{OUT_BIT, Register, SQWE_BIT};
-    use embedded_hal_mock::eh1::i2c::{Mock as I2cMock, Transaction as I2cTransaction};
 
     const DS1307_ADDR: u8 = 0x68;
 
@@ -236,10 +220,7 @@ mod tests {
 
     #[test]
     fn test_write_register() {
-        let expectations = vec![I2cTransaction::write(
-            DS1307_ADDR,
-            vec![Register::Control.addr(), 0x42],
-        )];
+        let expectations = vec![I2cTransaction::write(DS1307_ADDR, vec![Register::Control.addr(), 0x42])];
 
         let i2c_mock = I2cMock::new(&expectations);
         let mut ds1307 = Ds1307::new(i2c_mock);
@@ -270,11 +251,7 @@ mod tests {
 
     #[test]
     fn test_read_register() {
-        let expectations = vec![I2cTransaction::write_read(
-            DS1307_ADDR,
-            vec![Register::Control.addr()],
-            vec![0x55],
-        )];
+        let expectations = vec![I2cTransaction::write_read(DS1307_ADDR, vec![Register::Control.addr()], vec![0x55])];
 
         let i2c_mock = I2cMock::new(&expectations);
         let mut ds1307 = Ds1307::new(i2c_mock);
@@ -305,11 +282,8 @@ mod tests {
 
     #[test]
     fn test_read_register_bytes() {
-        let expectations = vec![I2cTransaction::write_read(
-            DS1307_ADDR,
-            vec![Register::Seconds.addr()],
-            vec![0x11, 0x22, 0x33],
-        )];
+        let expectations =
+            vec![I2cTransaction::write_read(DS1307_ADDR, vec![Register::Seconds.addr()], vec![0x11, 0x22, 0x33])];
 
         let i2c_mock = I2cMock::new(&expectations);
         let mut ds1307 = Ds1307::new(i2c_mock);
@@ -326,12 +300,8 @@ mod tests {
     #[test]
     fn test_read_register_bytes_error() {
         let expectations = vec![
-            I2cTransaction::write_read(
-                DS1307_ADDR,
-                vec![Register::Seconds.addr()],
-                vec![0x00, 0x00],
-            )
-            .with_error(embedded_hal::i2c::ErrorKind::Other),
+            I2cTransaction::write_read(DS1307_ADDR, vec![Register::Seconds.addr()], vec![0x00, 0x00])
+                .with_error(embedded_hal::i2c::ErrorKind::Other),
         ];
 
         let i2c_mock = I2cMock::new(&expectations);
@@ -399,10 +369,8 @@ mod tests {
 
     #[test]
     fn test_write_raw_bytes_error() {
-        let expectations = vec![
-            I2cTransaction::write(DS1307_ADDR, vec![0x0E, 0x1C])
-                .with_error(embedded_hal::i2c::ErrorKind::Other),
-        ];
+        let expectations =
+            vec![I2cTransaction::write(DS1307_ADDR, vec![0x0E, 0x1C]).with_error(embedded_hal::i2c::ErrorKind::Other)];
 
         let i2c_mock = I2cMock::new(&expectations);
         let mut ds1307 = Ds1307::new(i2c_mock);
@@ -417,11 +385,7 @@ mod tests {
     #[test]
     fn test_set_register_bits_change_needed() {
         let expectations = vec![
-            I2cTransaction::write_read(
-                DS1307_ADDR,
-                vec![Register::Control.addr()],
-                vec![0b0000_1000],
-            ),
+            I2cTransaction::write_read(DS1307_ADDR, vec![Register::Control.addr()], vec![0b0000_1000]),
             I2cTransaction::write(DS1307_ADDR, vec![Register::Control.addr(), 0b0001_1000]),
         ];
 
@@ -437,11 +401,8 @@ mod tests {
 
     #[test]
     fn test_set_register_bits_no_change_needed() {
-        let expectations = vec![I2cTransaction::write_read(
-            DS1307_ADDR,
-            vec![Register::Control.addr()],
-            vec![0b0001_1000],
-        )];
+        let expectations =
+            vec![I2cTransaction::write_read(DS1307_ADDR, vec![Register::Control.addr()], vec![0b0001_1000])];
 
         let i2c_mock = I2cMock::new(&expectations);
         let mut ds1307 = Ds1307::new(i2c_mock);
@@ -456,11 +417,7 @@ mod tests {
     #[test]
     fn test_set_register_bits_multiple_bits() {
         let expectations = vec![
-            I2cTransaction::write_read(
-                DS1307_ADDR,
-                vec![Register::Control.addr()],
-                vec![0b0000_0000],
-            ),
+            I2cTransaction::write_read(DS1307_ADDR, vec![Register::Control.addr()], vec![0b0000_0000]),
             I2cTransaction::write(DS1307_ADDR, vec![Register::Control.addr(), 0b1010_0101]),
         ];
 
@@ -494,11 +451,7 @@ mod tests {
     #[test]
     fn test_set_register_bits_write_error() {
         let expectations = vec![
-            I2cTransaction::write_read(
-                DS1307_ADDR,
-                vec![Register::Control.addr()],
-                vec![0b0000_0000],
-            ),
+            I2cTransaction::write_read(DS1307_ADDR, vec![Register::Control.addr()], vec![0b0000_0000]),
             I2cTransaction::write(DS1307_ADDR, vec![Register::Control.addr(), 0b0001_0000])
                 .with_error(embedded_hal::i2c::ErrorKind::Other),
         ];
@@ -516,11 +469,7 @@ mod tests {
     #[test]
     fn test_clear_register_bits_change_needed() {
         let expectations = vec![
-            I2cTransaction::write_read(
-                DS1307_ADDR,
-                vec![Register::Control.addr()],
-                vec![0b1111_1111],
-            ),
+            I2cTransaction::write_read(DS1307_ADDR, vec![Register::Control.addr()], vec![0b1111_1111]),
             I2cTransaction::write(DS1307_ADDR, vec![Register::Control.addr(), 0b1110_1111]),
         ];
 
@@ -536,11 +485,8 @@ mod tests {
 
     #[test]
     fn test_clear_register_bits_no_change_needed() {
-        let expectations = vec![I2cTransaction::write_read(
-            DS1307_ADDR,
-            vec![Register::Control.addr()],
-            vec![0b1110_1111],
-        )];
+        let expectations =
+            vec![I2cTransaction::write_read(DS1307_ADDR, vec![Register::Control.addr()], vec![0b1110_1111])];
 
         let i2c_mock = I2cMock::new(&expectations);
         let mut ds1307 = Ds1307::new(i2c_mock);
@@ -555,11 +501,7 @@ mod tests {
     #[test]
     fn test_clear_register_bits_multiple_bits() {
         let expectations = vec![
-            I2cTransaction::write_read(
-                DS1307_ADDR,
-                vec![Register::Control.addr()],
-                vec![0b1111_1111],
-            ),
+            I2cTransaction::write_read(DS1307_ADDR, vec![Register::Control.addr()], vec![0b1111_1111]),
             I2cTransaction::write(DS1307_ADDR, vec![Register::Control.addr(), 0b0101_1010]),
         ];
 
@@ -593,11 +535,7 @@ mod tests {
     #[test]
     fn test_clear_register_bits_write_error() {
         let expectations = vec![
-            I2cTransaction::write_read(
-                DS1307_ADDR,
-                vec![Register::Control.addr()],
-                vec![0b1111_1111],
-            ),
+            I2cTransaction::write_read(DS1307_ADDR, vec![Register::Control.addr()], vec![0b1111_1111]),
             I2cTransaction::write(DS1307_ADDR, vec![Register::Control.addr(), 0b1110_1111])
                 .with_error(embedded_hal::i2c::ErrorKind::Other),
         ];
@@ -615,11 +553,7 @@ mod tests {
     #[test]
     fn test_set_register_bits_preserves_other_bits() {
         let expectations = vec![
-            I2cTransaction::write_read(
-                DS1307_ADDR,
-                vec![Register::Control.addr()],
-                vec![0b1000_0010],
-            ),
+            I2cTransaction::write_read(DS1307_ADDR, vec![Register::Control.addr()], vec![0b1000_0010]),
             I2cTransaction::write(DS1307_ADDR, vec![Register::Control.addr(), 0b1001_0010]),
         ];
 
@@ -636,11 +570,7 @@ mod tests {
     #[test]
     fn test_clear_register_bits_preserves_other_bits() {
         let expectations = vec![
-            I2cTransaction::write_read(
-                DS1307_ADDR,
-                vec![Register::Control.addr()],
-                vec![0b1001_0010],
-            ),
+            I2cTransaction::write_read(DS1307_ADDR, vec![Register::Control.addr()], vec![0b1001_0010]),
             I2cTransaction::write(DS1307_ADDR, vec![Register::Control.addr(), 0b1000_0010]),
         ];
 
@@ -806,11 +736,7 @@ mod tests {
     #[test]
     fn test_set_output_high_write_error() {
         let expectations = vec![
-            I2cTransaction::write_read(
-                DS1307_ADDR,
-                vec![Register::Control.addr()],
-                vec![0b0000_0000],
-            ),
+            I2cTransaction::write_read(DS1307_ADDR, vec![Register::Control.addr()], vec![0b0000_0000]),
             I2cTransaction::write(DS1307_ADDR, vec![Register::Control.addr(), OUT_BIT])
                 .with_error(embedded_hal::i2c::ErrorKind::Other),
         ];

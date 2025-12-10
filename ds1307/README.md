@@ -1,40 +1,27 @@
-# DS1307 RTC Driver
+# DS1307 RTC Driver (Async)
 
-A Rust driver for the DS1307 Real-Time Clock (RTC) chip, implementing the embedded-hal and rtc-hal traits for integration with embedded Rust projects.
-
-## Features
-
-- Read and set date/time
-- Control power (start/stop the clock)
-- Use 56 bytes of memory storage
-- Generate square wave signals
-- Control output pin
+Async Rust driver for the DS1307 using embedded-hal-async.
 
 ## Basic usage
 
 ```rust
-use ds1307_rtc::Ds1307;
-use rtc_hal::rtc::Rtc;  // rtc_hal trait required to be imported to be used
-use rtc_hal::datetime::DateTime;
+use ds1307::{Ds1307, DateTime};
+use ds1307::async_api::{AsyncRtc, AsyncRtcPowerControl};
 
-// Set up I2C (depends on your board)
-let i2c = /* your I2C setup */;
-
-// Create the driver
-let mut rtc = Ds1307::new(i2c);
-
-// Set time to August 21, 2025 at 2:30 PM
-let time = DateTime::new(2025, 8, 21, 14, 30, 0).unwrap();
-rtc.set_datetime(&time).unwrap();
-
-// Read current time
-let now = rtc.get_datetime().unwrap();
+async fn example<I2C>(i2c: I2C) -> Result<(), ds1307::error::Error<I2C::Error>>
+where
+    I2C: embedded_hal_async::i2c::I2c,
+    I2C::Error: core::fmt::Debug,
+{
+    let mut rtc = Ds1307::new(i2c);
+    rtc.start_clock().await?;
+    let set = DateTime::new(2025, 8, 21, 14, 30, 0).unwrap();
+    rtc.set_datetime(&set).await?;
+    let now = rtc.get_datetime().await?;
+    let _ = now;
+    Ok(())
+}
 ```
-
-## Examples
-
-Example projects are available in the separate [ds1307-examples](https://github.com/implferris/ds1307-examples) repository to help you get started.
-
 
 ## License
 

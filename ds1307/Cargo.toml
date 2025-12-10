@@ -1,14 +1,14 @@
 [package]
 name = "ds1307"
-version = "0.2.4"
+version = "0.3.0"
 edition = "2024"
 authors = ["ImplFerris"]
-description = "A no_std driver for the DS1307 Real Time Clock (RTC) module"
+description = "An async no_std driver for the DS1307 Real Time Clock (RTC) module"
 license = "MIT"
 repository = "https://github.com/implferris/ds1307-rtc"
 readme = "README.md"
 categories = ["embedded", "hardware-support", "no-std"]
-keywords = ["ds1307", "rtc", "clock", "time", "driver"]
+keywords = ["ds1307", "rtc", "clock", "time", "driver", "async"]
 
 [dependencies]
 embedded-hal = "1.0.0"
@@ -27,4 +27,5 @@ rustdoc-args = ["--cfg", "docsrs"]
 targets = ["thumbv7m-none-eabi", "thumbv7em-none-eabihf"]
 
 [dev-dependencies]
-embedded-hal-mock = { version = "0.11.1", "features" = ["eh1"] }
+embedded-hal-mock = { version = "0.11.1", features = ["eh1", "embedded-hal-async"] }
+tokio = { version = "1.41.0", features = ["rt-multi-thread", "macros"] }

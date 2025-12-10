@@ -2,7 +2,7 @@ use alloc::string::{String, ToString};
 
 use embassy_time::{Duration, Timer};
 use esp_radio::wifi::{
-    sta::StationConfig, ModeConfig, ScanConfig, WifiController, WifiDevice, WifiEvent, WifiStationState,
+    scan::ScanConfig, sta::StationConfig, ModeConfig, WifiController, WifiDevice, WifiEvent, WifiStationState,
 };
 
 const SSID0: &str = dotenvy_macro::dotenv!("WIFI_SSID0");
