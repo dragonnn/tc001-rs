@@ -1,9 +1,12 @@
 use embassy_net::IpEndpoint;
+use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal};
 use embassy_time::{with_timeout, Duration, Instant, Timer};
 
 use crate::udp::UdpBuffers;
 
 mod sntpc;
+
+static NTP_SYNC: Signal<CriticalSectionRawMutex, chrono::NaiveDateTime> = Signal::new();
 
 async fn ntp_request(stack: embassy_net::Stack<'static>) -> Result<chrono::NaiveDateTime, ()> {
     info!("Prepare NTP request");
@@ -57,37 +60,16 @@ async fn ntp_request(stack: embassy_net::Stack<'static>) -> Result<chrono::Naive
 }
 
 #[embassy_executor::task]
-pub async fn ntp_task(stack: embassy_net::Stack<'static>, rtc: &'static esp_hal::rtc_cntl::Rtc<'static>) {
+pub async fn ntp_task(stack: embassy_net::Stack<'static>) {
     crate::wifi::wait_for_connection(&stack).await;
     Timer::after_secs(5).await;
 
-    let mut last_ntp_date = None;
-    let mut now = Instant::now();
     let mut ntp_error_count: u8 = 0;
     loop {
         match with_timeout(Duration::from_secs(5), ntp_request(stack.clone())).await {
             Ok(Ok(date)) => {
                 ntp_error_count = 0;
-
-                info!("NTP date: {:?}", date);
-                let rtc_now = chrono::NaiveDateTime::from_timestamp_micros(rtc.current_time_us() as i64).unwrap();
-                let rtc_delta = date.signed_duration_since(rtc_now);
-                info!("RTC delta: {} seconds", rtc_delta.as_seconds_f64());
-
-                rtc.set_current_time_us(date.and_utc().timestamp_micros() as u64);
-
-                if let Some(last_date) = last_ntp_date {
-                    let delta = date.signed_duration_since(last_date);
-                    let elapsed = now.elapsed();
-                    info!(
-                        "Time since last NTP: {} seconds (RTC delta: {} seconds)",
-                        elapsed.as_millis() as f32 / 1000.0,
-                        delta.as_seconds_f64()
-                    );
-                }
-
-                now = Instant::now();
-                last_ntp_date = Some(date);
+                NTP_SYNC.signal(date);
             }
             Err(_) => {
                 error!("NTP request timed out");
@@ -103,4 +85,8 @@ pub async fn ntp_task(stack: embassy_net::Stack<'static>, rtc: &'static esp_hal:
         }
         embassy_time::Timer::after(embassy_time::Duration::from_secs(20)).await;
     }
+}
+
+pub async fn wait_for_ntp_sync() -> chrono::NaiveDateTime {
+    NTP_SYNC.wait().await
 }

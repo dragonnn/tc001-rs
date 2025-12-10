@@ -9,3 +9,4 @@ mod registers;
 
 pub use async_api::{AsyncRtc, AsyncRtcNvram, AsyncRtcPowerControl, AsyncSquareWave};
 pub use ds1307::Ds1307;
+pub use rtc_hal::datetime::DateTime;

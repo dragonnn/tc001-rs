@@ -95,7 +95,12 @@ async fn main(spawner: Spawner) {
         )
     );
 
-    spawner.must_spawn(ds1307::ds1307_task(i2c0));
+    let mut rtc = esp_hal::rtc_cntl::Rtc::new(peripherals.LPWR);
+    info!("estimate_xtal_frequency: {}", rtc.estimate_xtal_frequency());
+    static RTC: StaticCell<esp_hal::rtc_cntl::Rtc> = StaticCell::new();
+    let rtc = RTC.init(rtc);
+
+    spawner.must_spawn(ds1307::ds1307_task(i2c0, rtc));
 
     info!("Heap initialized");
     esp_alloc::heap_allocator!(#[unsafe(link_section = ".dram2_uninit")] size: 96 * 1024);
@@ -114,11 +119,6 @@ async fn main(spawner: Spawner) {
     let rmt = peripherals.RMT;
     static APP_CORE_STACK: StaticCell<Stack<{ 8 * 1024 }>> = StaticCell::new();
     let app_core_stack = APP_CORE_STACK.init(Stack::new());
-
-    let mut rtc = esp_hal::rtc_cntl::Rtc::new(peripherals.LPWR);
-    info!("estimate_xtal_frequency: {}", rtc.estimate_xtal_frequency());
-    static RTC: StaticCell<esp_hal::rtc_cntl::Rtc> = StaticCell::new();
-    let rtc = RTC.init(rtc);
 
     let rtc2 = &*rtc;
     info!("Starting second core...");
@@ -161,7 +161,7 @@ async fn main(spawner: Spawner) {
     let right = Input::new(peripherals.GPIO27, InputConfig::default().with_pull(Pull::Up));
     let middle = Input::new(peripherals.GPIO14, InputConfig::default().with_pull(Pull::Up));
 
-    spawner.must_spawn(ntp::ntp_task(stack, rtc2));
+    spawner.must_spawn(ntp::ntp_task(stack));
     spawner.must_spawn(buttons::button_task(left, right, middle));
 
     let mut adc_config = esp_hal::analog::adc::AdcConfig::default();
