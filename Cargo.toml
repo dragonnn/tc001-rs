@@ -92,6 +92,7 @@ thiserror = { version = "2.0.17", default-features = false }
 enum_delegate = "0.2.0"
 
 phf = { version = "0.13.1", default-features = false, features = ["macros"]}
+ds1307 = { path = "./ds1307", features = ["defmt"] }
 
 [profile.dev]
 # Rust debug is too slow.

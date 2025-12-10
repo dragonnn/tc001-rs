@@ -327,6 +327,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ds1307"
+version = "0.3.0"
+dependencies = [
+ "defmt 1.0.1",
+ "embedded-hal 1.0.0",
+ "embedded-hal-async",
+ "rtc-hal",
+]
+
+[[package]]
 name = "ekv"
 version = "1.0.0"
 source = "git+https://github.com/embassy-rs/ekv/#b68fd9a9369ab1b7f6181e8f7fc97aa99012a1e3"
@@ -1707,6 +1717,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rtc-hal"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4a069b52b18a005d2c0338b27ada4f6a6e9ca7133d5b9b89fc0679b3b7a759e"
+dependencies = [
+ "defmt 1.0.1",
+]
+
+[[package]]
 name = "rustc_version"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1980,6 +1999,7 @@ dependencies = [
  "chrono-tz",
  "critical-section",
  "dotenvy_macro",
+ "ds1307",
  "ekv",
  "embassy-embedded-hal",
  "embassy-executor",

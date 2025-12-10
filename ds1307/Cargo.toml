@@ -20,12 +20,3 @@ defmt = { version = "1.0.1", optional = true }
 [features]
 default = []
 defmt = ["dep:defmt", "rtc-hal/defmt"]
-
-[package.metadata.docs.rs]
-all-features = true
-rustdoc-args = ["--cfg", "docsrs"]
-targets = ["thumbv7m-none-eabi", "thumbv7em-none-eabihf"]
-
-[dev-dependencies]
-embedded-hal-mock = { version = "0.11.1", features = ["eh1", "embedded-hal-async"] }
-tokio = { version = "1.41.0", features = ["rt-multi-thread", "macros"] }
