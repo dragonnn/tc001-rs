@@ -10,11 +10,9 @@ use esp_hal::{
 };
 use esp_hal_smartled::SmartLedsAdapter;
 
-mod awtrix;
-mod date;
 mod event;
-mod page;
-mod time;
+mod fonts;
+mod pages;
 
 pub fn matrix_task(
     rmt: esp_hal::peripherals::RMT<'static>,
@@ -65,7 +63,7 @@ pub fn matrix_task(
 
     info!("Starting matrix loop");
 
-    let mut current_page = time::Time::new(rtc);
+    let mut current_page = pages::Time::new(rtc);
     let mut current_page_instant = embassy_time::Instant::now();
 
     loop {
@@ -92,8 +90,8 @@ pub fn matrix_task(
         if let Some(elapsed) = now.checked_duration_since(current_page_instant) {
             if elapsed >= Duration::from_secs(10) {
                 let mut new_page = match current_page {
-                    page::Pages::Time(_) => date::Date::new(rtc),
-                    page::Pages::Date(_) => time::Time::new(rtc),
+                    pages::Pages::Time(_) => pages::Date::new(rtc),
+                    pages::Pages::Date(_) => pages::Time::new(rtc),
                 };
 
                 new_page.update();

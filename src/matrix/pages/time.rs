@@ -9,7 +9,10 @@ use embedded_graphics::{
     text::Text,
 };
 
-use super::page::Pages;
+use crate::matrix::{
+    fonts::AwtrixFont,
+    pages::{PageTarget, Pages},
+};
 
 pub struct Time {
     rtc: &'static esp_hal::rtc_cntl::Rtc<'static>,
@@ -38,7 +41,7 @@ impl Time {
         self.current_day_of_week = now.date().weekday().number_from_monday() as u8 - 1;
     }
 
-    pub fn render<T: super::page::PageTarget>(&self, target: &mut T) {
+    pub fn render<T: PageTarget>(&self, target: &mut T) {
         Rectangle::new(Point::new(0, 0), Size::new(32, 8))
             .into_styled(PrimitiveStyle::with_fill(embedded_graphics::pixelcolor::Rgb888::BLACK))
             .draw(target)
@@ -52,9 +55,9 @@ impl Time {
             .draw(target)
             .ok();
 
-        let day_style = super::awtrix::AwtrixFont::new(Rgb888::BLACK);
+        let day_style = AwtrixFont::new(Rgb888::BLACK);
         Text::new(self.current_day.as_str(), Point::new(1, 2), day_style).draw(target).ok();
-        let time_style = super::awtrix::AwtrixFont::new(Rgb888::YELLOW);
+        let time_style = AwtrixFont::new(Rgb888::YELLOW);
         Text::new(self.current_time.as_str(), Point::new(12, 1), time_style).draw(target).ok();
         for i in 0..7 {
             let color = if i == self.current_day_of_week { Rgb888::WHITE } else { Rgb888::CSS_GRAY };

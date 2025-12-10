@@ -3,7 +3,7 @@ use core::fmt::Write as _;
 
 use embedded_graphics::{pixelcolor::Rgb888, prelude::*};
 
-use super::page::Pages;
+use crate::matrix::{fonts::AwtrixFont, pages::Pages};
 
 pub struct Date {
     rtc: &'static esp_hal::rtc_cntl::Rtc<'static>,
@@ -23,7 +23,7 @@ impl Date {
         write!(&mut self.current_time, "{}", date.format("%d.%m.%y")).ok();
     }
 
-    pub fn render<T: super::page::PageTarget>(&self, target: &mut T) {
+    pub fn render<T: super::PageTarget>(&self, target: &mut T) {
         embedded_graphics::primitives::Rectangle::new(Point::new(0, 0), Size::new(32, 8))
             .into_styled(embedded_graphics::primitives::PrimitiveStyle::with_fill(
                 embedded_graphics::pixelcolor::Rgb888::BLACK,
@@ -33,7 +33,7 @@ impl Date {
         //let font = embedded_graphics::mono_font::ascii::FONT_4X6;
         //let style = embedded_graphics::mono_font::MonoTextStyle::new(&font, embedded_graphics::pixelcolor::Rgb888::RED);
         //let style = super::font::mateine(embedded_graphics::pixelcolor::Rgb888::RED);
-        let style = super::awtrix::AwtrixFont::new(Rgb888::RED);
+        let style = AwtrixFont::new(Rgb888::RED);
         embedded_graphics::text::Text::new(self.current_time.as_str(), Point::new(0, 0), style).draw(target).ok();
     }
 }
