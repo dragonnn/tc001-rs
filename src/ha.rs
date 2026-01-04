@@ -30,7 +30,7 @@ pub async fn ha_task(spawner: Spawner, stack: embassy_net::Stack<'static>) {
 
     let device = embassy_ha::new(
         RESOURCES.init(Default::default()),
-        embassy_ha::DeviceConfig { device_id, device_name: device_id, manufacturer: "Dragonn", model: "AWTRIX 3" },
+        embassy_ha::DeviceConfig { device_id, device_name: device_id, manufacturer: "Dragonn", model: "RWTRIX 3" },
     );
 
     let switch_indicator1 = embassy_ha::create_switch(
