@@ -20,6 +20,7 @@ ekv = { git = "https://github.com/embassy-rs/ekv/", features = ["max-page-count-
 smart-leds = "0.4.0"
 smart-leds-matrix = { path = "./smart-leds-matrix" }
 embedded-graphics = "0.8.1"
+
 embedded-ttf = "0.2.2"
 log = "0.4.27"
 

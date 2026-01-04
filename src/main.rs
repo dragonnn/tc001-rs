@@ -46,6 +46,7 @@ mod heap;
 mod matrix;
 mod mk_static;
 mod ntp;
+mod state;
 mod storage;
 mod udp;
 mod wifi;

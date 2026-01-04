@@ -10,8 +10,9 @@ use esp_hal::{
 };
 use esp_hal_smartled::SmartLedsAdapter;
 
-use crate::adc::get_brightness_percent;
+use crate::{adc::get_brightness_percent, state};
 
+mod color;
 mod event;
 mod fonts;
 mod pages;
@@ -89,9 +90,10 @@ pub fn matrix_task(
             }
         }
 
+        let transition_state = state::get_transition_state();
         let now = embassy_time::Instant::now();
         if let Some(elapsed) = now.checked_duration_since(current_page_instant) {
-            if elapsed >= Duration::from_secs(10) {
+            if elapsed >= Duration::from_secs(10) && transition_state {
                 let mut new_page = match current_page {
                     pages::Pages::Time(_) => pages::Battery::new(),
                     pages::Pages::Battery(_) => pages::Date::new(rtc),
@@ -130,6 +132,8 @@ pub fn matrix_task(
                 }
 
                 current_page = new_page;
+                current_page_instant = embassy_time::Instant::now();
+            } else if !transition_state {
                 current_page_instant = embassy_time::Instant::now();
             }
         } else {

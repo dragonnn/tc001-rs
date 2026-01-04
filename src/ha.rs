@@ -2,10 +2,12 @@ use alloc::{boxed::Box, string::String};
 use core::{fmt::Write as _, sync::atomic::Ordering};
 
 use embassy_executor::Spawner;
-use embassy_ha::MqttState;
+use embassy_ha::{BinaryState, MqttState};
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, channel::Channel};
 use embassy_time::Timer;
 use static_cell::StaticCell;
+
+use crate::state;
 
 #[atomic_enum::atomic_enum]
 pub enum HaState {
@@ -86,9 +88,25 @@ pub async fn ha_task(spawner: Spawner, stack: embassy_net::Stack<'static>) {
         },
     );
 
+    let switch_transition = embassy_ha::create_switch(
+        &device,
+        "transition",
+        embassy_ha::SwitchConfig {
+            common: embassy_ha::EntityCommonConfig {
+                name: Some("Transition"),
+                icon: Some("mdi:swap-horizontal"),
+                ..Default::default()
+            },
+            class: embassy_ha::SwitchClass::Generic,
+            command_policy: embassy_ha::CommandPolicy::PublishState,
+        },
+    );
+
     spawner.must_spawn(switch_class(switch_indicator1));
     spawner.must_spawn(switch_class(switch_indicator2));
     spawner.must_spawn(switch_class(switch_indicator3));
+
+    spawner.must_spawn(transition_class(switch_transition));
 
     spawner.must_spawn(state());
 
@@ -104,8 +122,19 @@ pub async fn ha_task(spawner: Spawner, stack: embassy_net::Stack<'static>) {
 async fn switch_class(mut switch: embassy_ha::Switch<'static>) {
     loop {
         let state = switch.toggle();
-        //info!("state = {}", state);
-        Timer::after_secs(2).await;
+        Timer::after_secs(20).await;
+    }
+}
+
+#[embassy_executor::task]
+async fn transition_class(mut switch: embassy_ha::Switch<'static>) {
+    loop {
+        let state = switch.wait().await;
+        if let BinaryState::On = state {
+            state::external_set_transition_state(true);
+        } else {
+            state::external_set_transition_state(false);
+        }
     }
 }
 
