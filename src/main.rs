@@ -45,7 +45,6 @@ mod ha;
 mod heap;
 mod matrix;
 mod mk_static;
-mod mqtt;
 mod ntp;
 mod storage;
 mod udp;
@@ -166,7 +165,6 @@ async fn main(spawner: Spawner) {
     let middle = Input::new(peripherals.GPIO14, InputConfig::default().with_pull(Pull::Up));
 
     spawner.must_spawn(ntp::ntp_task(stack));
-    spawner.must_spawn(mqtt::mqtt_task(stack));
     spawner.must_spawn(ha::ha_task(spawner, stack));
     spawner.must_spawn(buttons::button_task(left, right, middle));
 

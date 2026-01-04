@@ -1,4 +1,4 @@
-use alloc::string::String;
+use alloc::{boxed::Box, string::String};
 use core::fmt::Write as _;
 
 use embassy_executor::Spawner;
@@ -22,30 +22,28 @@ pub async fn ha_task(spawner: Spawner, stack: embassy_net::Stack<'static>) {
     let mac = esp_radio::wifi::station_mac();
     info!("Device MAC address: {:02X?}", mac);
 
-    let mut mqtt_prefix = String::with_capacity(13);
+    let mut device_id = String::with_capacity(13);
 
-    write!(&mut mqtt_prefix, "awtrix_{:02x}{:02x}{:02x}", mac[3], mac[4], mac[5]).ok();
+    write!(&mut device_id, "awtrix_{:02x}{:02x}{:02x}", mac[3], mac[4], mac[5]).ok();
 
-    let mut device = embassy_ha::new(
+    let device_id = Box::leak(device_id.into_boxed_str());
+
+    let device = embassy_ha::new(
         RESOURCES.init(Default::default()),
-        embassy_ha::DeviceConfig {
-            device_id: "example-device-id",
-            device_name: "Example Device Name",
-            manufacturer: "Example Device Manufacturer",
-            model: "Example Device Model",
-        },
+        embassy_ha::DeviceConfig { device_id, device_name: "Matrix", manufacturer: "Dragonn", model: "AWTRIX 3" },
     );
 
-    let sensor = embassy_ha::create_binary_sensor(
+    let switch_indicator1 = embassy_ha::create_switch(
         &device,
-        "binary-sensor-id",
-        embassy_ha::BinarySensorConfig {
-            common: embassy_ha::EntityCommonConfig { name: Some("Binary Sensor"), ..Default::default() },
-            class: embassy_ha::BinarySensorClass::Smoke,
+        "ind1",
+        embassy_ha::SwitchConfig {
+            common: embassy_ha::EntityCommonConfig { name: Some("Indicator 1"), ..Default::default() },
+            class: embassy_ha::SwitchClass::Generic,
+            command_policy: embassy_ha::CommandPolicy::PublishState,
         },
     );
 
-    spawner.must_spawn(binary_sensor_class(sensor));
+    spawner.must_spawn(switch_class(switch_indicator1));
 
     let mqtt_params =
         embassy_ha::MqttConnectParams { username: Some(MQTT_USER), password: Some(MQTT_PASSWORD.as_bytes()) };
@@ -54,7 +52,7 @@ pub async fn ha_task(spawner: Spawner, stack: embassy_net::Stack<'static>) {
 }
 
 #[embassy_executor::task]
-async fn binary_sensor_class(mut switch: embassy_ha::BinarySensor<'static>) {
+async fn switch_class(mut switch: embassy_ha::Switch<'static>) {
     loop {
         let state = switch.toggle();
         //info!("state = {}", state);
