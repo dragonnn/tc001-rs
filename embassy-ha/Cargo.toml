@@ -14,6 +14,7 @@ categories = ["embedded", "network-programming"]
 default = []
 defmt = ["dep:defmt", "embassy-net/defmt", "embassy-sync/defmt"]
 tracing = ["dep:tracing"]
+log = ["dep:log"]
 
 [dependencies]
 embassy-net = { version = "0.7", features = ["medium-ip", "proto-ipv4", "tcp", "dns"] }
@@ -26,6 +27,7 @@ tracing = { version = "0.1", optional = true, default-features = false }
 embassy-sync = { version = "0.7" }
 embassy-futures = "0.1"
 embedded-io-async = "0.6"
+log = { version = "0.4.27", optional = true }
 
 [dev-dependencies]
 embassy-time = { version = "0.5", features = ["std"] }

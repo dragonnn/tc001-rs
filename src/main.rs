@@ -17,7 +17,7 @@ use core::fmt::Write;
 use embassy_executor::Spawner;
 use embassy_net::StackResources;
 use embassy_time::{Duration, Timer};
-use embedded_graphics::{Drawable, prelude::*};
+use embedded_graphics::{prelude::*, Drawable};
 use esp_backtrace as _;
 use esp_hal::{
     clock::CpuClock,
@@ -41,6 +41,7 @@ extern crate alloc;
 mod adc;
 mod buttons;
 mod ds1307;
+mod ha;
 mod heap;
 mod matrix;
 mod mk_static;
@@ -166,6 +167,7 @@ async fn main(spawner: Spawner) {
 
     spawner.must_spawn(ntp::ntp_task(stack));
     spawner.must_spawn(mqtt::mqtt_task(stack));
+    spawner.must_spawn(ha::ha_task(spawner, stack));
     spawner.must_spawn(buttons::button_task(left, right, middle));
 
     let mut adc_config = esp_hal::analog::adc::AdcConfig::default();

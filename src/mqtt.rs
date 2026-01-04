@@ -7,7 +7,7 @@ use embassy_sync::{
     channel::Channel,
     signal::Signal,
 };
-use embassy_time::{Duration, Instant, Timer, with_timeout};
+use embassy_time::{with_timeout, Duration, Instant, Timer};
 use esp_hal::gpio::Level;
 use mountain_mqtt::{
     client::{Client, ClientError, ConnectionSettings, EventHandlerError},
@@ -119,6 +119,7 @@ const MQTT_PASSWORD: &str = dotenvy_macro::dotenv!("MQTT_PASSWORD");
 
 #[embassy_executor::task]
 pub async fn mqtt_task(stack: embassy_net::Stack<'static>) {
+    return;
     crate::wifi::wait_for_connection(&stack).await;
     Timer::after_secs(5).await;
 

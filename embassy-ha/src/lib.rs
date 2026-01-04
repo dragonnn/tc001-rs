@@ -684,7 +684,7 @@ pub fn create_device_tracker<'a>(
 /// loop {
 ///     let mut transport = create_transport();
 ///
-///     match embassy_ha::run(&mut device, &mut transport).await {
+///     match embassy_ha::run(&mut device, &mut transport, Default::default()).await {
 ///         Ok(()) => {
 ///             // Normal exit (this shouldn't happen in practice)
 ///             break;
@@ -700,7 +700,11 @@ pub fn create_device_tracker<'a>(
 /// ```
 ///
 /// For a higher-level alternative that handles retries automatically, see [`connect_and_run`].
-pub async fn run<T: Transport>(device: &mut Device<'_>, transport: &mut T) -> Result<(), Error> {
+pub async fn run<T: Transport>(
+    device: &mut Device<'_>,
+    transport: &mut T,
+    mqtt_params: MqttConnectParams<'_>,
+) -> Result<(), Error> {
     use core::fmt::Write;
 
     const MQTT_TIMEOUT: Duration = Duration::from_secs(30);
@@ -717,6 +721,8 @@ pub async fn run<T: Transport>(device: &mut Device<'_>, transport: &mut T) -> Re
         will_payload: Some(NOT_AVAILABLE_PAYLOAD.as_bytes()),
         will_retain: true,
         keepalive: Some(DEFAULT_KEEPALIVE_TIME),
+        username: mqtt_params.username,
+        password: mqtt_params.password,
         ..Default::default()
     };
     match embassy_time::with_timeout(MQTT_TIMEOUT, client.connect_with(device.config.device_id, connect_params)).await {
@@ -1140,10 +1146,15 @@ pub async fn run<T: Transport>(device: &mut Device<'_>, transport: &mut T) -> Re
 ///     );
 ///
 ///     // This function never returns
-///     embassy_ha::connect_and_run(stack, device, "mqtt.example.com:1883").await;
+///     embassy_ha::connect_and_run(stack, device, "mqtt.example.com:1883", Default::default()).await;
 /// }
 /// ```
-pub async fn connect_and_run(stack: embassy_net::Stack<'_>, mut device: Device<'_>, address: &str) -> ! {
+pub async fn connect_and_run(
+    stack: embassy_net::Stack<'_>,
+    mut device: Device<'_>,
+    address: &str,
+    mqtt_params: MqttConnectParams<'_>,
+) -> ! {
     const DEFAULT_MQTT_PORT: u16 = 1883;
 
     let mut rx_buffer = [0u8; 1024];
@@ -1229,7 +1240,7 @@ pub async fn connect_and_run(stack: embassy_net::Stack<'_>, mut device: Device<'
 
         socket.set_timeout(None);
 
-        if let Err(err) = run(&mut device, &mut socket).await {
+        if let Err(err) = run(&mut device, &mut socket, mqtt_params).await {
             crate::log::error!("Device run failed with: {:?}", crate::log::Debug2Format(&err));
         }
     }
@@ -1251,4 +1262,11 @@ async fn wait_on_atomic_waker(waker: &AtomicWaker) {
         }
     }
     F(waker, false).await
+}
+
+/// MQTT connection parameters including optional username and password.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct MqttConnectParams<'a> {
+    pub username: Option<&'a str>,
+    pub password: Option<&'a [u8]>,
 }

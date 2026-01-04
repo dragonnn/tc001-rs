@@ -49,10 +49,13 @@ macro_rules! trace {
         #[cfg(feature = "defmt")]
         defmt::trace!($($arg)*);
 
-        #[cfg(all(feature = "tracing", not(feature = "defmt")))]
+        #[cfg(all(feature = "log", not(feature = "defmt"), not(feature = "tracing")))]
+        ::log::trace!($($arg)*);
+
+        #[cfg(all(feature = "tracing", not(feature = "defmt"), not(feature = "log")))]
         tracing::trace!($($arg)*);
 
-        #[cfg(not(any(feature = "defmt", feature = "tracing")))]
+        #[cfg(not(any(feature = "defmt", feature = "tracing", feature = "log")))]
         { let _ = format_args!($($arg)*); } // no-op, format_args! borrows without moving
     };
 }
@@ -63,10 +66,13 @@ macro_rules! debug {
         #[cfg(feature = "defmt")]
         defmt::debug!($($arg)*);
 
-        #[cfg(all(feature = "tracing", not(feature = "defmt")))]
+        #[cfg(all(feature = "log", not(feature = "defmt"), not(feature = "tracing")))]
+        ::log::debug!($($arg)*);
+
+        #[cfg(all(feature = "tracing", not(feature = "defmt"), not(feature = "log")))]
         tracing::debug!($($arg)*);
 
-        #[cfg(not(any(feature = "defmt", feature = "tracing")))]
+        #[cfg(not(any(feature = "defmt", feature = "tracing", feature = "log")))]
         { let _ = format_args!($($arg)*); } // no-op, format_args! borrows without moving
     };
 }
@@ -77,10 +83,13 @@ macro_rules! info {
         #[cfg(feature = "defmt")]
         defmt::info!($($arg)*);
 
-        #[cfg(all(feature = "tracing", not(feature = "defmt")))]
+        #[cfg(all(feature = "log", not(feature = "defmt"), not(feature = "tracing")))]
+        ::log::info!($($arg)*);
+
+        #[cfg(all(feature = "tracing", not(feature = "defmt"), not(feature = "log")))]
         tracing::info!($($arg)*);
 
-        #[cfg(not(any(feature = "defmt", feature = "tracing")))]
+        #[cfg(not(any(feature = "defmt", feature = "tracing", feature = "log")))]
         { let _ = format_args!($($arg)*); } // no-op, format_args! borrows without moving
     };
 }
@@ -91,10 +100,13 @@ macro_rules! warn {
         #[cfg(feature = "defmt")]
         defmt::warn!($($arg)*);
 
-        #[cfg(all(feature = "tracing", not(feature = "defmt")))]
+        #[cfg(all(feature = "log", not(feature = "defmt"), not(feature = "tracing")))]
+        ::log::warn!($($arg)*);
+
+        #[cfg(all(feature = "tracing", not(feature = "defmt"), not(feature = "log")))]
         tracing::warn!($($arg)*);
 
-        #[cfg(not(any(feature = "defmt", feature = "tracing")))]
+        #[cfg(not(any(feature = "defmt", feature = "tracing", feature = "log")))]
         { let _ = format_args!($($arg)*); } // no-op, format_args! borrows without moving
     };
 }
@@ -105,10 +117,13 @@ macro_rules! error {
         #[cfg(feature = "defmt")]
         defmt::error!($($arg)*);
 
-        #[cfg(all(feature = "tracing", not(feature = "defmt")))]
+        #[cfg(all(feature = "log", not(feature = "defmt"), not(feature = "tracing")))]
+        ::log::error!($($arg)*);
+
+        #[cfg(all(feature = "tracing", not(feature = "defmt"), not(feature = "log")))]
         tracing::error!($($arg)*);
 
-        #[cfg(not(any(feature = "defmt", feature = "tracing")))]
+        #[cfg(not(any(feature = "defmt", feature = "tracing", feature = "log")))]
         { let _ = format_args!($($arg)*); } // no-op, format_args! borrows without moving
     };
 }
