@@ -11,6 +11,7 @@ use embedded_graphics::{
 use num_traits::float::Float;
 
 use crate::{
+    ha::HaState,
     matrix::{
         fonts::AwtrixFont,
         pages::{PageTarget, Pages},
@@ -20,15 +21,17 @@ use crate::{
 
 pub struct Status {
     wifi_state: WiFiState,
+    ha_state: HaState,
 }
 
 impl Status {
     pub fn new() -> Self {
-        Status { wifi_state: WiFiState::Disconnected }
+        Status { wifi_state: WiFiState::Disconnected, ha_state: HaState::Disconnected }
     }
 
     pub fn update(&mut self) {
         self.wifi_state = crate::wifi::get_wifi_state();
+        self.ha_state = crate::ha::get_ha_state();
     }
 
     pub fn render<T: PageTarget>(&self, target: &mut T) {
@@ -45,6 +48,22 @@ impl Status {
                 Pixel(Point::new(30, 0), wifi_color),
                 Pixel(Point::new(31, 0), wifi_color),
                 Pixel(Point::new(31, 1), wifi_color),
+            ])
+            .ok();
+
+        let ha_color = match self.ha_state {
+            HaState::Disconnected => Rgb888::RED,
+            HaState::TransportConnecting => Rgb888::YELLOW,
+            HaState::TransportConnected => Rgb888::CSS_ORANGE,
+            HaState::MqttConnecting => Rgb888::CSS_ORANGE,
+            HaState::MqttConnected => Rgb888::GREEN,
+        };
+
+        target
+            .draw_iter([
+                Pixel(Point::new(30, 7), ha_color),
+                Pixel(Point::new(31, 7), ha_color),
+                Pixel(Point::new(31, 6), ha_color),
             ])
             .ok();
     }

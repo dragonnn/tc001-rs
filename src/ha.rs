@@ -1,11 +1,20 @@
 use alloc::{boxed::Box, string::String};
-use core::fmt::Write as _;
+use core::{fmt::Write as _, sync::atomic::Ordering};
 
 use embassy_executor::Spawner;
+use embassy_ha::MqttState;
+use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, channel::Channel};
 use embassy_time::Timer;
 use static_cell::StaticCell;
 
-//light.awtrix_d12e5c_indicator_1
+#[atomic_enum::atomic_enum]
+pub enum HaState {
+    Disconnected,
+    TransportConnecting,
+    TransportConnected,
+    MqttConnecting,
+    MqttConnected,
+}
 
 const MQTT_BROKER_ADDRESS: &str = dotenvy_macro::dotenv!("MQTT_BROKER_ADDRESS");
 const MQTT_BROKER_PORT: &str = dotenvy_macro::dotenv!("MQTT_BROKER_PORT");
@@ -13,6 +22,8 @@ const MQTT_USER: &str = dotenvy_macro::dotenv!("MQTT_USER");
 const MQTT_PASSWORD: &str = dotenvy_macro::dotenv!("MQTT_PASSWORD");
 
 static RESOURCES: StaticCell<embassy_ha::DeviceResources> = StaticCell::new();
+static MQTT_STATE_CHANNEL: Channel<CriticalSectionRawMutex, MqttState, 1> = Channel::new();
+static HA_STATE: AtomicHaState = AtomicHaState::new(HaState::Disconnected);
 
 #[embassy_executor::task]
 pub async fn ha_task(spawner: Spawner, stack: embassy_net::Stack<'static>) {
@@ -79,10 +90,14 @@ pub async fn ha_task(spawner: Spawner, stack: embassy_net::Stack<'static>) {
     spawner.must_spawn(switch_class(switch_indicator2));
     spawner.must_spawn(switch_class(switch_indicator3));
 
+    spawner.must_spawn(state());
+
     let mqtt_params =
         embassy_ha::MqttConnectParams { username: Some(MQTT_USER), password: Some(MQTT_PASSWORD.as_bytes()) };
 
-    embassy_ha::connect_and_run(stack, device, MQTT_BROKER_ADDRESS, mqtt_params).await;
+    let event_sender = MQTT_STATE_CHANNEL.dyn_sender();
+
+    embassy_ha::connect_and_run(stack, device, MQTT_BROKER_ADDRESS, event_sender, mqtt_params).await;
 }
 
 #[embassy_executor::task(pool_size = 3)]
@@ -92,4 +107,33 @@ async fn switch_class(mut switch: embassy_ha::Switch<'static>) {
         //info!("state = {}", state);
         Timer::after_secs(2).await;
     }
+}
+
+#[embassy_executor::task]
+async fn state() {
+    let receiver = MQTT_STATE_CHANNEL.receiver();
+    loop {
+        let state = receiver.receive().await;
+        match state {
+            MqttState::Disconnected => {
+                HA_STATE.store(HaState::Disconnected, Ordering::Relaxed);
+            }
+            MqttState::TransportConnecting => {
+                HA_STATE.store(HaState::TransportConnecting, Ordering::Relaxed);
+            }
+            MqttState::TransportConnected => {
+                HA_STATE.store(HaState::TransportConnected, Ordering::Relaxed);
+            }
+            MqttState::MqttConnecting => {
+                HA_STATE.store(HaState::MqttConnecting, Ordering::Relaxed);
+            }
+            MqttState::MqttConnected => {
+                HA_STATE.store(HaState::MqttConnected, Ordering::Relaxed);
+            }
+        }
+    }
+}
+
+pub fn get_ha_state() -> HaState {
+    HA_STATE.load(Ordering::Relaxed)
 }

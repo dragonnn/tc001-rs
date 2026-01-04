@@ -99,7 +99,7 @@ use core::{
 };
 
 use embassy_net::tcp::TcpSocket;
-use embassy_sync::waitqueue::AtomicWaker;
+use embassy_sync::{channel::DynamicSender, waitqueue::AtomicWaker};
 use embassy_time::{Duration, Timer};
 use heapless::{
     Vec, VecView,
@@ -703,6 +703,7 @@ pub fn create_device_tracker<'a>(
 pub async fn run<T: Transport>(
     device: &mut Device<'_>,
     transport: &mut T,
+    event_sender: DynamicSender<'_, MqttState>,
     mqtt_params: MqttConnectParams<'_>,
 ) -> Result<(), Error> {
     use core::fmt::Write;
@@ -725,6 +726,7 @@ pub async fn run<T: Transport>(
         password: mqtt_params.password,
         ..Default::default()
     };
+    event_sender.send(MqttState::MqttConnecting).await;
     match embassy_time::with_timeout(MQTT_TIMEOUT, client.connect_with(device.config.device_id, connect_params)).await {
         Ok(Ok(())) => {}
         Ok(Err(err)) => {
@@ -736,6 +738,7 @@ pub async fn run<T: Transport>(
             return Err(Error::new("mqtt connect timed out"));
         }
     }
+    event_sender.send(MqttState::MqttConnected).await;
 
     crate::log::debug!("sending discover messages");
     let device_discovery = DeviceDiscovery {
@@ -1153,6 +1156,7 @@ pub async fn connect_and_run(
     stack: embassy_net::Stack<'_>,
     mut device: Device<'_>,
     address: &str,
+    event_sender: DynamicSender<'_, MqttState>,
     mqtt_params: MqttConnectParams<'_>,
 ) -> ! {
     const DEFAULT_MQTT_PORT: u16 = 1883;
@@ -1224,7 +1228,7 @@ pub async fn connect_and_run(
 
         let mut socket = TcpSocket::new(stack, &mut rx_buffer, &mut tx_buffer);
         socket.set_timeout(Some(embassy_time::Duration::from_secs(10)));
-
+        event_sender.send(MqttState::TransportConnecting).await;
         let connect_fut = embassy_time::with_timeout(Duration::from_secs(10), socket.connect(addr));
         match connect_fut.await {
             Ok(Err(err)) => {
@@ -1239,8 +1243,8 @@ pub async fn connect_and_run(
         }
 
         socket.set_timeout(None);
-
-        if let Err(err) = run(&mut device, &mut socket, mqtt_params).await {
+        event_sender.send(MqttState::TransportConnected).await;
+        if let Err(err) = run(&mut device, &mut socket, event_sender, mqtt_params).await {
             crate::log::error!("Device run failed with: {:?}", crate::log::Debug2Format(&err));
         }
     }
@@ -1269,4 +1273,13 @@ async fn wait_on_atomic_waker(waker: &AtomicWaker) {
 pub struct MqttConnectParams<'a> {
     pub username: Option<&'a str>,
     pub password: Option<&'a [u8]>,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum MqttState {
+    Disconnected,
+    TransportConnecting,
+    TransportConnected,
+    MqttConnecting,
+    MqttConnected,
 }
