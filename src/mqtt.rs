@@ -26,7 +26,7 @@ pub enum Action {
     Button,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum MqttAction {
     AnnounceAndSubscribe { connection_id: ConnectionId },
     Action(Action),
@@ -43,6 +43,7 @@ impl MqttOperations for Action {
     where
         C: Client<'a>,
     {
+        info!("Performing MQTT action: {:?}", self);
         match self {
             Action::Button => {
                 //let payload = "42";
@@ -64,9 +65,11 @@ impl MqttOperations for MqttAction {
     where
         C: Client<'a>,
     {
+        info!("Performing MQTT action: {:?}", self);
         match self {
             // Specific to one connection, not retried
             Self::AnnounceAndSubscribe { connection_id } => {
+                info!("Current connection ID: {:?}, action connection ID: {:?}", current_connection_id, connection_id);
                 if connection_id == &current_connection_id && !is_retry {
                     client.publish("ignore", "true".as_bytes(), QualityOfService::Qos1, false).await?;
                     client.subscribe("ignore", QualityOfService::Qos1).await?;
@@ -88,6 +91,7 @@ pub enum Event {
 
 impl<const P: usize> FromApplicationMessage<P> for Event {
     fn from_application_message(message: &ApplicationMessage<P>) -> Result<Self, EventHandlerError> {
+        info!("Received MQTT message on topic: {:?}", message);
         let received = match message.topic_name {
             RECEIVE_TOPIC => {
                 let state = parse_led(message.payload)?;
@@ -137,6 +141,8 @@ pub async fn mqtt_task(stack: embassy_net::Stack<'static>) {
     let settings = Settings::new(address, port);
     let connection_settings = ConnectionSettings::authenticated(mqtt_prefix, MQTT_USER, MQTT_PASSWORD.as_bytes());
 
+    EVENT_CHANNEL.send(MqttAction::AnnounceAndSubscribe { connection_id: ConnectionId::new(0) }).await;
+
     let event_sender = ACTION_CHANNEL.sender();
     let action_receiver = EVENT_CHANNEL.receiver();
 
@@ -149,3 +155,6 @@ pub async fn mqtt_task(stack: embassy_net::Stack<'static>) {
     )
     .await;
 }
+
+#[embassy_executor::task]
+pub async fn mqtt_action_task() {}
