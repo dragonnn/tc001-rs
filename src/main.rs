@@ -77,6 +77,16 @@ async fn main(spawner: Spawner) {
     let output_config = esp_hal::gpio::OutputConfig::default();
     let buzzer = Output::new(peripherals.GPIO15, Level::Low, OutputConfig::default());
 
+    let timg0 = TimerGroup::new(peripherals.TIMG0);
+    let mut wdt0 = timg0.wdt;
+    wdt0.set_timeout(esp_hal::timer::timg::MwdtStage::Stage0, esp_hal::time::Duration::from_millis(500));
+    wdt0.enable();
+    let sw_int = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
+    esp_rtos::start(timg0.timer0, sw_int.software_interrupt0);
+
+    info!("Heap initialized");
+    esp_alloc::heap_allocator!(#[unsafe(link_section = ".dram2_uninit")] size: 96 * 1024);
+
     //6 - SDA GPIO21
     //7 - SCL GPIO22
     let sda = peripherals.GPIO21;
@@ -102,15 +112,7 @@ async fn main(spawner: Spawner) {
 
     spawner.must_spawn(ds1307::ds1307_task(i2c0, rtc));
 
-    info!("Heap initialized");
-    esp_alloc::heap_allocator!(#[unsafe(link_section = ".dram2_uninit")] size: 96 * 1024);
-
-    let timg0 = TimerGroup::new(peripherals.TIMG0);
-    let mut wdt0 = timg0.wdt;
-    wdt0.set_timeout(esp_hal::timer::timg::MwdtStage::Stage0, esp_hal::time::Duration::from_millis(500));
-    wdt0.enable();
-    let sw_int = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
-    esp_rtos::start(timg0.timer0, sw_int.software_interrupt0);
+    Timer::after(Duration::from_millis(10)).await;
 
     spawner.must_spawn(heap::heap_task());
 

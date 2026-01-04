@@ -50,24 +50,28 @@ pub async fn sync_ds1307_to_rtc<I2C: I2c>(
     >,
     rtc: &'static esp_hal::rtc_cntl::Rtc<'static>,
 ) {
-    let datetime = ds1307.get_datetime().await.unwrap();
-    info!(
-        "DS1307 DateTime: {:04}-{:02}-{:02} {:02}:{:02}:{:02}",
-        datetime.year(),
-        datetime.month(),
-        datetime.day_of_month(),
-        datetime.hour(),
-        datetime.minute(),
-        datetime.second()
-    );
-    let datetime = chrono::NaiveDate::from_ymd_opt(
-        datetime.year() as i32,
-        datetime.month() as u32,
-        datetime.day_of_month() as u32,
-    )
-    .unwrap()
-    .and_hms_opt(datetime.hour() as u32, datetime.minute() as u32, datetime.second() as u32)
-    .unwrap();
+    let datetime = ds1307.get_datetime().await;
+    if let Ok(datetime) = datetime {
+        info!(
+            "DS1307 DateTime: {:04}-{:02}-{:02} {:02}:{:02}:{:02}",
+            datetime.year(),
+            datetime.month(),
+            datetime.day_of_month(),
+            datetime.hour(),
+            datetime.minute(),
+            datetime.second()
+        );
+        let datetime = chrono::NaiveDate::from_ymd_opt(
+            datetime.year() as i32,
+            datetime.month() as u32,
+            datetime.day_of_month() as u32,
+        )
+        .unwrap()
+        .and_hms_opt(datetime.hour() as u32, datetime.minute() as u32, datetime.second() as u32)
+        .unwrap();
 
-    rtc.set_current_time_us(datetime.and_utc().timestamp_micros() as u64);
+        rtc.set_current_time_us(datetime.and_utc().timestamp_micros() as u64);
+    } else {
+        error!("Failed to read DS1307 DateTime: {:?}", datetime.err());
+    }
 }
