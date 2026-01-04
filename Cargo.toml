@@ -101,6 +101,8 @@ atomic_enum = "0.3.0"
 mountain-mqtt-embassy = { path = "./mountain-mqtt/mountain-mqtt-embassy", default-features = false, features = ["log"] }
 mountain-mqtt = { path = "./mountain-mqtt/mountain-mqtt", default-features = false }
 
+embassy-ha = { path = "./embassy-ha", default-features = false }
+
 [profile.dev]
 # Rust debug is too slow.
 # For debug builds always builds with some optimization
