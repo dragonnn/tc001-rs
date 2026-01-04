@@ -51,16 +51,14 @@ impl Time {
     }
 
     pub fn render<T: PageTarget>(&self, target: &mut T) {
-        Rectangle::new(Point::new(0, 0), Size::new(32, 8))
-            .into_styled(PrimitiveStyle::with_fill(embedded_graphics::pixelcolor::Rgb888::BLACK))
-            .draw(target)
-            .ok();
+        target.clear(Rgb888::BLACK).ok();
+
         Rectangle::new(Point::new(0, 0), Size::new(9, 2))
-            .into_styled(PrimitiveStyle::with_fill(embedded_graphics::pixelcolor::Rgb888::RED))
+            .into_styled(PrimitiveStyle::with_fill(Rgb888::RED))
             .draw(target)
             .ok();
         Rectangle::new(Point::new(0, 2), Size::new(9, 6))
-            .into_styled(PrimitiveStyle::with_fill(embedded_graphics::pixelcolor::Rgb888::WHITE))
+            .into_styled(PrimitiveStyle::with_fill(Rgb888::WHITE))
             .draw(target)
             .ok();
 

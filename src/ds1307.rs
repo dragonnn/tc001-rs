@@ -20,15 +20,6 @@ pub async fn ds1307_task(mut i2c0: &'static crate::I2c0, rtc: &'static esp_hal::
                 sync_ds1307_to_rtc(&mut ds1307, rtc).await;
             }
             Either::Second(ntp_datetime) => {
-                info!(
-                    "Setting DS1307 DateTime from NTP: {:04}-{:02}-{:02} {:02}:{:02}:{:02}",
-                    ntp_datetime.year(),
-                    ntp_datetime.month(),
-                    ntp_datetime.day(),
-                    ntp_datetime.hour(),
-                    ntp_datetime.minute(),
-                    ntp_datetime.second()
-                );
                 let ds1307_datetime = ds1307::DateTime::new(
                     ntp_datetime.year() as u16,
                     ntp_datetime.month() as u8,
@@ -52,15 +43,6 @@ pub async fn sync_ds1307_to_rtc<I2C: I2c>(
 ) {
     let datetime = ds1307.get_datetime().await;
     if let Ok(datetime) = datetime {
-        info!(
-            "DS1307 DateTime: {:04}-{:02}-{:02} {:02}:{:02}:{:02}",
-            datetime.year(),
-            datetime.month(),
-            datetime.day_of_month(),
-            datetime.hour(),
-            datetime.minute(),
-            datetime.second()
-        );
         let datetime = chrono::NaiveDate::from_ymd_opt(
             datetime.year() as i32,
             datetime.month() as u32,

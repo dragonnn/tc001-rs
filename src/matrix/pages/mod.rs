@@ -2,9 +2,11 @@ use alloc::{boxed::Box, string::String};
 
 use embedded_graphics::{pixelcolor::Rgb888, prelude::DrawTarget};
 
+mod battery;
 mod date;
 mod time;
 
+pub use battery::Battery;
 pub use date::Date;
 pub use time::Time;
 
@@ -15,6 +17,7 @@ impl<T: DrawTarget<Color = Rgb888, Error = core::convert::Infallible>> PageTarge
 pub enum Pages {
     Time(Box<time::Time>),
     Date(Box<date::Date>),
+    Battery(Box<battery::Battery>),
 }
 
 impl Pages {
@@ -22,6 +25,7 @@ impl Pages {
         match self {
             Pages::Time(page) => page.update(),
             Pages::Date(page) => page.update(),
+            Pages::Battery(page) => page.update(),
         }
     }
 
@@ -29,6 +33,7 @@ impl Pages {
         match self {
             Pages::Time(page) => page.render(target),
             Pages::Date(page) => page.render(target),
+            Pages::Battery(page) => page.render(target),
         }
     }
 }

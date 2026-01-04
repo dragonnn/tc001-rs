@@ -24,12 +24,7 @@ impl Date {
     }
 
     pub fn render<T: super::PageTarget>(&self, target: &mut T) {
-        embedded_graphics::primitives::Rectangle::new(Point::new(0, 0), Size::new(32, 8))
-            .into_styled(embedded_graphics::primitives::PrimitiveStyle::with_fill(
-                embedded_graphics::pixelcolor::Rgb888::BLACK,
-            ))
-            .draw(target)
-            .ok();
+        target.clear(Rgb888::BLACK).ok();
         //let font = embedded_graphics::mono_font::ascii::FONT_4X6;
         //let style = embedded_graphics::mono_font::MonoTextStyle::new(&font, embedded_graphics::pixelcolor::Rgb888::RED);
         //let style = super::font::mateine(embedded_graphics::pixelcolor::Rgb888::RED);

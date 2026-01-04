@@ -90,22 +90,32 @@ pub fn matrix_task(
         if let Some(elapsed) = now.checked_duration_since(current_page_instant) {
             if elapsed >= Duration::from_secs(10) {
                 let mut new_page = match current_page {
-                    pages::Pages::Time(_) => pages::Date::new(rtc),
+                    pages::Pages::Time(_) => pages::Battery::new(),
+                    pages::Pages::Battery(_) => pages::Date::new(rtc),
                     pages::Pages::Date(_) => pages::Time::new(rtc),
                 };
 
                 new_page.update();
 
-                for i in (0..matrix.size().width).rev() {
+                let size = matrix.size();
+                for i in (0..size.width).rev() {
                     let current_page_offset = Point::new(i as i32 - matrix.size().width as i32, 0);
                     let new_page_offset = Point::new(i as i32, 0);
 
                     {
                         let mut current_page_target = matrix.translated(current_page_offset);
+                        let mut current_page_target = current_page_target.clipped(&Rectangle {
+                            top_left: Point::zero(),
+                            size: Size { width: size.width - current_page_offset.x as u32, height: size.height },
+                        });
                         current_page.render(&mut current_page_target);
                     }
                     {
                         let mut new_page_target = matrix.translated(new_page_offset);
+                        let mut new_page_target = new_page_target.clipped(&Rectangle {
+                            top_left: Point::zero(),
+                            size: Size { width: size.width - new_page_offset.x as u32, height: size.height },
+                        });
                         new_page.render(&mut new_page_target);
                     }
 

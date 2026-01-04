@@ -1,6 +1,22 @@
-use embassy_futures::select::{select3, Either3};
+use core::sync::atomic::{AtomicU16, Ordering::Relaxed};
+
 use embassy_time::{Duration, Timer};
-use esp_hal::gpio::Input;
+
+static BATTERY_LEVEL_PERCENTAGE: AtomicU16 = AtomicU16::new(0);
+
+const MIN_BATTERY_RAW: u16 = 475;
+const MAX_BATTERY_RAW: u16 = 656;
+
+fn map_range<T>(value: T, in_min: T, in_max: T, out_min: T, out_max: T) -> T
+where
+    T: Copy
+        + core::ops::Add<Output = T>
+        + core::ops::Sub<Output = T>
+        + core::ops::Mul<Output = T>
+        + core::ops::Div<Output = T>,
+{
+    (value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
+}
 
 #[embassy_executor::task]
 pub async fn adc_task(mut adc: super::Adc, mut battery: super::BatteryPin, mut light_sensor: super::LightSensorPin) {
@@ -16,22 +32,27 @@ pub async fn adc_task(mut adc: super::Adc, mut battery: super::BatteryPin, mut l
         }
         let battery_avg = (battery_total / 10) as u16;
         let light_sensor_avg = (light_sensor_total / 10) as u16;
-        info!(
+        /*info!(
             "Battery ADC: {} ({}%), Light Sensor ADC: {}",
             battery_avg,
             battery_adc_to_percentage(battery_avg),
             light_sensor_avg
-        );
-        Timer::after(Duration::from_secs(10)).await;
+        );*/
+        let battery_percentage = battery_adc_to_percentage(battery_avg);
+        BATTERY_LEVEL_PERCENTAGE.store((battery_percentage * 10.0) as u16, Relaxed);
+        Timer::after(Duration::from_secs(1)).await;
     }
 }
 
 fn battery_adc_to_percentage(adc_value: u16) -> f32 {
-    let adc_value = adc_value as f32 * 1.6;
-    info!("adc_value: {}", adc_value);
-    let percentage = (adc_value - 3.0) / 0.69 * 100.0;
-    info!("percentage: {}", percentage);
-    percentage.max(100.0).min(0.0)
+    let clamped_value = if adc_value < MIN_BATTERY_RAW {
+        MIN_BATTERY_RAW
+    } else if adc_value > MAX_BATTERY_RAW {
+        MAX_BATTERY_RAW
+    } else {
+        adc_value
+    };
+    map_range(clamped_value as f32, MIN_BATTERY_RAW as f32, MAX_BATTERY_RAW as f32, 0.0, 100.0)
 }
 
 fn scale_12_to_10_exact(x: u16) -> u16 {
@@ -39,7 +60,7 @@ fn scale_12_to_10_exact(x: u16) -> u16 {
     ((x * 1023 + 2047) / 4095) as u16
 }
 
-pub async fn read_oneshot<'d, PIN>(
+async fn read_oneshot<'d, PIN>(
     adc: &mut super::Adc,
     pin: &mut esp_hal::analog::adc::AdcPin<PIN, esp_hal::peripherals::ADC1<'static>>,
 ) -> u16
@@ -54,4 +75,8 @@ where
             }
         }
     }
+}
+
+pub fn get_battery_level_percentage() -> f32 {
+    BATTERY_LEVEL_PERCENTAGE.load(Relaxed) as f32 / 10.0
 }
