@@ -28,7 +28,7 @@ impl Date {
         //let font = embedded_graphics::mono_font::ascii::FONT_4X6;
         //let style = embedded_graphics::mono_font::MonoTextStyle::new(&font, embedded_graphics::pixelcolor::Rgb888::RED);
         //let style = super::font::mateine(embedded_graphics::pixelcolor::Rgb888::RED);
-        let style = AwtrixFont::new(Rgb888::RED);
-        embedded_graphics::text::Text::new(self.current_time.as_str(), Point::new(0, 0), style).draw(target).ok();
+        let style = AwtrixFont::new(Rgb888::YELLOW);
+        embedded_graphics::text::Text::new(self.current_time.as_str(), Point::new(3, 1), style).draw(target).ok();
     }
 }

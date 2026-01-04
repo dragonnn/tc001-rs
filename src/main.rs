@@ -17,7 +17,7 @@ use core::fmt::Write;
 use embassy_executor::Spawner;
 use embassy_net::StackResources;
 use embassy_time::{Duration, Timer};
-use embedded_graphics::{prelude::*, Drawable};
+use embedded_graphics::{Drawable, prelude::*};
 use esp_backtrace as _;
 use esp_hal::{
     clock::CpuClock,
@@ -44,6 +44,7 @@ mod ds1307;
 mod heap;
 mod matrix;
 mod mk_static;
+mod mqtt;
 mod ntp;
 mod storage;
 mod udp;
@@ -150,7 +151,7 @@ async fn main(spawner: Spawner) {
     let (stack, runner) = embassy_net::new(
         wifi_interface,
         config,
-        mk_static::mk_static!(StackResources<3>, StackResources::<3>::new()),
+        mk_static::mk_static!(StackResources<4>, StackResources::<4>::new()),
         seed,
     );
 
@@ -164,6 +165,7 @@ async fn main(spawner: Spawner) {
     let middle = Input::new(peripherals.GPIO14, InputConfig::default().with_pull(Pull::Up));
 
     spawner.must_spawn(ntp::ntp_task(stack));
+    spawner.must_spawn(mqtt::mqtt_task(stack));
     spawner.must_spawn(buttons::button_task(left, right, middle));
 
     let mut adc_config = esp_hal::analog::adc::AdcConfig::default();

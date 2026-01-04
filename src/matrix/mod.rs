@@ -15,6 +15,7 @@ use crate::adc::get_brightness_percent;
 mod event;
 mod fonts;
 mod pages;
+mod status;
 
 pub fn matrix_task(
     rmt: esp_hal::peripherals::RMT<'static>,
@@ -59,6 +60,8 @@ pub fn matrix_task(
     let mut current_page = pages::Time::new(rtc);
     let mut current_page_instant = embassy_time::Instant::now();
 
+    let mut status = status::Status::new();
+
     loop {
         let mut brightness = ((get_brightness_percent() / 100.0) * 255.0) as u8;
         if brightness == 0 {
@@ -68,6 +71,8 @@ pub fn matrix_task(
         wdt0.feed();
         current_page.update();
         current_page.render(&mut matrix);
+        status.update();
+        status.render(&mut matrix);
         let now = embassy_time::Instant::now();
         loop {
             matrix.flush_with_gamma().ok();
@@ -116,6 +121,8 @@ pub fn matrix_task(
                         });
                         new_page.render(&mut new_page_target);
                     }
+
+                    status.render(&mut matrix);
 
                     matrix.flush_with_gamma().ok();
                     wdt0.feed();
