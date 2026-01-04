@@ -57,7 +57,7 @@ pub async fn adc_task(mut adc: super::Adc, mut battery: super::BatteryPin, mut l
             0.0,
             100.0,
         );
-        info!("Calculated brightness percent: {:.2}%", brightness_percent);
+
         BRIGHTNESS_PERCENT.store((brightness_percent * 10.0) as u16, Relaxed);
 
         Timer::after(Duration::from_secs(1)).await;
