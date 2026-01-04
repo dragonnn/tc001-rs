@@ -38,7 +38,7 @@ impl Status {
     }
 
     pub fn render<T: PageTarget>(&self, target: &mut T) {
-        let darken = 130;
+        let darken = 140;
 
         let wifi_color = color::darken(
             match self.wifi_state {
