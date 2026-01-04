@@ -65,8 +65,8 @@ pub fn matrix_task(
 
     loop {
         let mut brightness = ((get_brightness_percent() / 100.0) * 255.0) as u8;
-        if brightness < 10 {
-            brightness = 10;
+        if brightness < 5 {
+            brightness = 5;
         }
         matrix.set_brightness(brightness);
         wdt0.feed();
