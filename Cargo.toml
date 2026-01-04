@@ -98,9 +98,6 @@ num-traits = { version = "0.2.19", default-features =  false }
 
 atomic_enum = "0.3.0"
 
-mountain-mqtt-embassy = { path = "./mountain-mqtt/mountain-mqtt-embassy", default-features = false, features = ["log"] }
-mountain-mqtt = { path = "./mountain-mqtt/mountain-mqtt", default-features = false }
-
 embassy-ha = { path = "./embassy-ha", default-features = false, features = ["log"] }
 
 [profile.dev]
@@ -129,6 +126,3 @@ esp-backtrace = { git = "https://github.com/esp-rs/esp-hal/", branch = "main" }
 esp-println = { git = "https://github.com/esp-rs/esp-hal/", branch = "main" }
 esp-alloc = { git = "https://github.com/esp-rs/esp-hal/", branch = "main" }
 esp-storage = { git = "https://github.com/esp-rs/esp-hal/", branch = "main" }
-
-mountain-mqtt-embassy = { path = "./mountain-mqtt/mountain-mqtt-embassy" }
-mountain-mqtt = { path = "./mountain-mqtt/mountain-mqtt" }
