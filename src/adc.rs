@@ -6,7 +6,7 @@ use num_traits::Pow as _;
 static BATTERY_LEVEL_PERCENTAGE: AtomicU16 = AtomicU16::new(0);
 static BRIGHTNESS_PERCENT: AtomicU16 = AtomicU16::new(0);
 
-const MIN_BATTERY_RAW: u16 = 475;
+const MIN_BATTERY_RAW: u16 = 575;
 const MAX_BATTERY_RAW: u16 = 656;
 const MIN_BRIGHTNESS: u16 = 2;
 const MAX_BRIGHTNESS: u16 = 100;

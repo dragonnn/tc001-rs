@@ -42,7 +42,7 @@ pub fn matrix_task(
 
     info!("Rmt buffer initialized: {:?}", rmt_buffer.len());
 
-    let mut led: SmartLedsAdapter<'_, BUFFER_SIZE> =
+    let led: SmartLedsAdapter<'_, BUFFER_SIZE> =
         { SmartLedsAdapter::new(rmt_channel, led, rmt_buffer.as_mut_array().unwrap()) };
     info!("Led adapter initialized.");
 
