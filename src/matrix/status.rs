@@ -24,23 +24,30 @@ pub struct Status {
     wifi_state: WiFiState,
     ha_state: HaState,
     transition_state: bool,
+    indicators_state: [bool; 3],
 }
 
 impl Status {
     pub fn new() -> Self {
-        Status { wifi_state: WiFiState::Disconnected, ha_state: HaState::Disconnected, transition_state: false }
+        Status {
+            wifi_state: WiFiState::Disconnected,
+            ha_state: HaState::Disconnected,
+            transition_state: false,
+            indicators_state: [false; 3],
+        }
     }
 
     pub fn update(&mut self) {
         self.wifi_state = crate::wifi::get_wifi_state();
         self.ha_state = crate::ha::get_ha_state();
         self.transition_state = crate::state::get_transition_state();
+        self.indicators_state = crate::state::get_indicators_state();
     }
 
     pub fn render<T: PageTarget>(&self, target: &mut T) {
         let darken = 140;
 
-        let wifi_color = color::darken(
+        let mut wifi_color = color::darken(
             match self.wifi_state {
                 WiFiState::Disconnected => Rgb888::RED,
                 WiFiState::Scanning => Rgb888::YELLOW,
@@ -51,6 +58,10 @@ impl Status {
             darken,
         );
 
+        if self.indicators_state[0] {
+            wifi_color = Rgb888::WHITE;
+        }
+
         target
             .draw_iter([
                 Pixel(Point::new(30, 0), wifi_color),
@@ -59,7 +70,15 @@ impl Status {
             ])
             .ok();
 
-        let ha_color = color::darken(
+        let mut indicator1_color = Rgb888::BLACK;
+
+        if self.indicators_state[1] {
+            indicator1_color = Rgb888::WHITE;
+        }
+
+        target.draw_iter([Pixel(Point::new(31, 3), indicator1_color), Pixel(Point::new(31, 4), indicator1_color)]).ok();
+
+        let mut ha_color = color::darken(
             match self.ha_state {
                 HaState::Disconnected => Rgb888::RED,
                 HaState::TransportConnecting => Rgb888::YELLOW,
@@ -69,6 +88,10 @@ impl Status {
             },
             darken,
         );
+
+        if self.indicators_state[2] {
+            ha_color = Rgb888::WHITE;
+        }
 
         target
             .draw_iter([

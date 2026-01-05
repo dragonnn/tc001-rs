@@ -63,3 +63,12 @@ impl TryFrom<&[u8]> for BinaryState {
         string.parse()
     }
 }
+
+impl From<BinaryState> for bool {
+    fn from(value: BinaryState) -> Self {
+        match value {
+            BinaryState::On => true,
+            BinaryState::Off => false,
+        }
+    }
+}

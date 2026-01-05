@@ -56,6 +56,7 @@ pub async fn wifi_task(mut controller: WifiController<'static>, storage: crate::
             WIFI_STATE.store(WiFiState::Scanning, Ordering::Relaxed);
             let scan_config = ScanConfig::default().with_max(5);
             let result = controller.scan_with_config_async(scan_config).await.unwrap();
+            info!("Scan complete, found {} networks", result.len());
             for ap in result {
                 info!("{:?}", ap);
                 if let Ok(password) = storage.read::<String>(&crate::storage::Key::Wifi(&ap.ssid)).await {

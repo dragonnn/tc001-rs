@@ -102,9 +102,9 @@ pub async fn ha_task(spawner: Spawner, stack: embassy_net::Stack<'static>) {
         },
     );
 
-    spawner.must_spawn(switch_class(switch_indicator1));
-    spawner.must_spawn(switch_class(switch_indicator2));
-    spawner.must_spawn(switch_class(switch_indicator3));
+    spawner.must_spawn(switch_class(switch_indicator1, 0));
+    spawner.must_spawn(switch_class(switch_indicator2, 1));
+    spawner.must_spawn(switch_class(switch_indicator3, 2));
 
     spawner.must_spawn(transition_class(switch_transition));
 
@@ -119,22 +119,16 @@ pub async fn ha_task(spawner: Spawner, stack: embassy_net::Stack<'static>) {
 }
 
 #[embassy_executor::task(pool_size = 3)]
-async fn switch_class(mut switch: embassy_ha::Switch<'static>) {
+async fn switch_class(mut switch: embassy_ha::Switch<'static>, index: usize) {
     loop {
-        let state = switch.toggle();
-        Timer::after_secs(20).await;
+        state::set_indicator_state(index, switch.wait().await.into());
     }
 }
 
 #[embassy_executor::task]
 async fn transition_class(mut switch: embassy_ha::Switch<'static>) {
     loop {
-        let state = switch.wait().await;
-        if let BinaryState::On = state {
-            state::external_set_transition_state(true);
-        } else {
-            state::external_set_transition_state(false);
-        }
+        state::external_set_transition_state(switch.wait().await.into());
     }
 }
 

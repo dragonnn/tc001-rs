@@ -158,6 +158,7 @@ async fn main(spawner: Spawner) {
 
     let storage = storage::init(peripherals.FLASH).await;
 
+    spawner.must_spawn(state::state_task(storage.clone()));
     spawner.must_spawn(wifi::wifi_task(wifi_controller, *&storage));
     spawner.must_spawn(wifi::net_task(runner));
 

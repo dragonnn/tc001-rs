@@ -13,7 +13,7 @@ use esp_hal_smartled::SmartLedsAdapter;
 use crate::{adc::get_brightness_percent, state};
 
 mod color;
-mod event;
+pub mod event;
 mod fonts;
 mod pages;
 mod status;
@@ -70,6 +70,8 @@ pub fn matrix_task(
 
     let mut status = status::Status::new();
     let mut delay_millis = 50;
+
+    let event_receiver = event::get_event_channel_receiver();
 
     loop {
         {
@@ -153,12 +155,10 @@ pub fn matrix_task(
             current_page_instant = embassy_time::Instant::now();
         }
 
-        let now = embassy_time::Instant::now();
         for (page_index, page) in &mut pages.iter_mut().enumerate() {
             if page_index != current_page_index {
                 page.idle_update();
             }
         }
-        delay_millis = 50 - now.elapsed().as_millis() as u32;
     }
 }
