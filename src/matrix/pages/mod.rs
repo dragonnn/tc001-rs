@@ -36,4 +36,8 @@ impl Pages {
             Pages::Battery(page) => page.render(target),
         }
     }
+
+    pub fn idle_update(&mut self) {
+        self.update();
+    }
 }

@@ -1,4 +1,4 @@
-use alloc::boxed::Box;
+use alloc::{boxed::Box, vec::Vec};
 use core::fmt::Write as _;
 
 use embassy_time::Duration;
@@ -58,35 +58,46 @@ pub fn matrix_task(
 
     info!("Starting matrix loop");
 
-    let mut current_page = pages::Time::new(rtc);
+    //let mut current_page = pages::Time::new(rtc);
     let mut current_page_instant = embassy_time::Instant::now();
 
+    let mut pages = Vec::with_capacity(4);
+    pages.push(pages::Time::new(rtc));
+    pages.push(pages::Date::new(rtc));
+    pages.push(pages::Battery::new());
+
+    let mut current_page_index = 0;
+
     let mut status = status::Status::new();
+    let mut delay_millis = 50;
 
     loop {
-        let mut brightness = ((get_brightness_percent() / 100.0) * 255.0) as u8;
-        if brightness < 5 {
-            brightness = 5;
-        }
-        matrix.set_brightness(brightness);
-        wdt0.feed();
-        current_page.update();
-        current_page.render(&mut matrix);
-        status.update();
-        status.render(&mut matrix);
-        let now = embassy_time::Instant::now();
-        loop {
-            matrix.flush_with_gamma().ok();
+        {
+            let current_page = &mut pages[current_page_index];
+            let mut brightness = ((get_brightness_percent() / 100.0) * 255.0) as u8;
+            if brightness < 5 {
+                brightness = 5;
+            }
+            matrix.set_brightness(brightness);
             wdt0.feed();
-            Delay::new().delay_millis(50);
-            let now2 = embassy_time::Instant::now();
-            if let Some(elapsed) = now2.checked_duration_since(now) {
-                if elapsed >= Duration::from_millis(100) {
+            current_page.update();
+            current_page.render(&mut matrix);
+            status.update();
+            status.render(&mut matrix);
+            let now = embassy_time::Instant::now();
+            loop {
+                matrix.flush_with_gamma().ok();
+                wdt0.feed();
+                Delay::new().delay_millis(delay_millis);
+                let now2 = embassy_time::Instant::now();
+                if let Some(elapsed) = now2.checked_duration_since(now) {
+                    if elapsed >= Duration::from_millis(100) {
+                        break;
+                    }
+                } else {
+                    warn!("Time went backwards!");
                     break;
                 }
-            } else {
-                warn!("Time went backwards!");
-                break;
             }
         }
 
@@ -94,11 +105,12 @@ pub fn matrix_task(
         let now = embassy_time::Instant::now();
         if let Some(elapsed) = now.checked_duration_since(current_page_instant) {
             if elapsed >= Duration::from_secs(10) && transition_state {
-                let mut new_page = match current_page {
-                    pages::Pages::Time(_) => pages::Battery::new(),
-                    pages::Pages::Battery(_) => pages::Date::new(rtc),
-                    pages::Pages::Date(_) => pages::Time::new(rtc),
-                };
+                let new_page_index = (current_page_index + 1) % pages.len();
+
+                let [new_page, current_page] = pages.get_disjoint_mut([new_page_index, current_page_index]).unwrap();
+
+                //let new_page = &mut pages[new_page_index];
+                //let current_page = &mut pages[current_page_index];
 
                 new_page.update();
 
@@ -131,7 +143,7 @@ pub fn matrix_task(
                     Delay::new().delay_millis(25);
                 }
 
-                current_page = new_page;
+                current_page_index = new_page_index;
                 current_page_instant = embassy_time::Instant::now();
             } else if !transition_state {
                 current_page_instant = embassy_time::Instant::now();
@@ -140,5 +152,13 @@ pub fn matrix_task(
             warn!("Time went backwards!");
             current_page_instant = embassy_time::Instant::now();
         }
+
+        let now = embassy_time::Instant::now();
+        for (page_index, page) in &mut pages.iter_mut().enumerate() {
+            if page_index != current_page_index {
+                page.idle_update();
+            }
+        }
+        delay_millis = 50 - now.elapsed().as_millis() as u32;
     }
 }
