@@ -74,7 +74,8 @@ pub fn matrix_task(
     let event_receiver = event::get_event_channel_receiver();
 
     loop {
-        {
+        let event = event_receiver.try_receive();
+        if event.is_err() {
             let current_page = &mut pages[current_page_index];
             let mut brightness = ((get_brightness_percent() / 100.0) * 255.0) as u8;
             if brightness < 5 {
@@ -102,12 +103,34 @@ pub fn matrix_task(
                 }
             }
         }
+        let mut page_left = false;
+        let mut page_right = false;
+        if let Ok(event) = event {
+            match event {
+                event::MatrixEvent::PageLeft => {
+                    page_left = true;
+                }
+                event::MatrixEvent::PageRight => {
+                    page_right = true;
+                }
+                _ => {
+                    warn!("Unexpected event received in matrix task: {:?}", event);
+                }
+            }
+        }
 
         let transition_state = state::get_transition_state();
         let now = embassy_time::Instant::now();
         if let Some(elapsed) = now.checked_duration_since(current_page_instant) {
-            if elapsed >= Duration::from_secs(10) && transition_state {
-                let new_page_index = (current_page_index + 1) % pages.len();
+            if (elapsed >= Duration::from_secs(10) && transition_state) || (page_left || page_right) {
+                let mut new_page_index = (current_page_index + 1) % pages.len();
+                if page_left {
+                    if current_page_index == 0 {
+                        new_page_index = pages.len() - 1;
+                    } else {
+                        new_page_index = current_page_index - 1;
+                    }
+                }
 
                 let [new_page, current_page] = pages.get_disjoint_mut([new_page_index, current_page_index]).unwrap();
 
