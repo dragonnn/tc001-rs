@@ -81,7 +81,7 @@ async fn main(spawner: Spawner) {
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     let mut wdt0 = timg0.wdt;
-    wdt0.set_timeout(esp_hal::timer::timg::MwdtStage::Stage0, esp_hal::time::Duration::from_millis(500));
+    wdt0.set_timeout(esp_hal::timer::timg::MwdtStage::Stage0, esp_hal::time::Duration::from_millis(5000));
     wdt0.enable();
     let sw_int = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
     esp_rtos::start(timg0.timer0, sw_int.software_interrupt0);

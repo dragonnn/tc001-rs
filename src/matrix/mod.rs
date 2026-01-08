@@ -140,32 +140,59 @@ pub fn matrix_task(
                 new_page.update();
 
                 let size = matrix.size();
-                for i in (0..size.width).rev() {
-                    let current_page_offset = Point::new(i as i32 - matrix.size().width as i32, 0);
-                    let new_page_offset = Point::new(i as i32, 0);
+                if page_left {
+                    for i in 0..size.width {
+                        let new_page_offset = Point::new(i as i32 - matrix.size().width as i32, 0);
+                        let current_page_offset = Point::new(i as i32, 0);
+                        {
+                            let mut new_page_target = matrix.translated(new_page_offset);
+                            let mut new_page_target = new_page_target.clipped(&Rectangle {
+                                top_left: Point::zero(),
+                                size: Size { width: size.width - new_page_offset.x as u32, height: size.height },
+                            });
+                            new_page.render(&mut new_page_target);
+                        }
+                        {
+                            let mut current_page_target = matrix.translated(current_page_offset);
+                            let mut current_page_target = current_page_target.clipped(&Rectangle {
+                                top_left: Point::zero(),
+                                size: Size { width: size.width - current_page_offset.x as u32, height: size.height },
+                            });
+                            current_page.render(&mut current_page_target);
+                        }
+                        status.render(&mut matrix);
 
-                    {
-                        let mut current_page_target = matrix.translated(current_page_offset);
-                        let mut current_page_target = current_page_target.clipped(&Rectangle {
-                            top_left: Point::zero(),
-                            size: Size { width: size.width - current_page_offset.x as u32, height: size.height },
-                        });
-                        current_page.render(&mut current_page_target);
+                        matrix.flush_with_gamma().ok();
+                        wdt0.feed();
+                        Delay::new().delay_millis(25);
                     }
-                    {
-                        let mut new_page_target = matrix.translated(new_page_offset);
-                        let mut new_page_target = new_page_target.clipped(&Rectangle {
-                            top_left: Point::zero(),
-                            size: Size { width: size.width - new_page_offset.x as u32, height: size.height },
-                        });
-                        new_page.render(&mut new_page_target);
+                } else {
+                    for i in (0..size.width).rev() {
+                        let current_page_offset = Point::new(i as i32 - matrix.size().width as i32, 0);
+                        let new_page_offset = Point::new(i as i32, 0);
+                        {
+                            let mut current_page_target = matrix.translated(current_page_offset);
+                            let mut current_page_target = current_page_target.clipped(&Rectangle {
+                                top_left: Point::zero(),
+                                size: Size { width: size.width - current_page_offset.x as u32, height: size.height },
+                            });
+                            current_page.render(&mut current_page_target);
+                        }
+                        {
+                            let mut new_page_target = matrix.translated(new_page_offset);
+                            let mut new_page_target = new_page_target.clipped(&Rectangle {
+                                top_left: Point::zero(),
+                                size: Size { width: size.width - new_page_offset.x as u32, height: size.height },
+                            });
+                            new_page.render(&mut new_page_target);
+                        }
+
+                        status.render(&mut matrix);
+
+                        matrix.flush_with_gamma().ok();
+                        wdt0.feed();
+                        Delay::new().delay_millis(25);
                     }
-
-                    status.render(&mut matrix);
-
-                    matrix.flush_with_gamma().ok();
-                    wdt0.feed();
-                    Delay::new().delay_millis(25);
                 }
 
                 current_page_index = new_page_index;
