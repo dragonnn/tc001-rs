@@ -83,7 +83,7 @@ pub async fn ntp_task(stack: embassy_net::Stack<'static>) {
         if ntp_error_count >= 10 {
             esp_hal::system::software_reset();
         }
-        embassy_time::Timer::after(embassy_time::Duration::from_secs(20)).await;
+        embassy_time::Timer::after(embassy_time::Duration::from_secs(120)).await;
     }
 }
 
