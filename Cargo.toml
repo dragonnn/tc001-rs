@@ -114,6 +114,7 @@ incremental      = false
 lto              = 'fat'
 opt-level        = 's'
 overflow-checks  = false
+panic            = 'abort'
 
 [patch.crates-io]
 #esp-hal-smartled = { git = "https://github.com/esp-rs/esp-hal-community/", branch = "main" }
