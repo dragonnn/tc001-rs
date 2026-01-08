@@ -69,7 +69,7 @@ pub fn matrix_task(
     let mut current_page_index = 0;
 
     let mut status = status::Status::new();
-    let mut delay_millis = 50;
+    let delay_millis = 50;
 
     let event_receiver = event::get_event_channel_receiver();
 
@@ -107,14 +107,14 @@ pub fn matrix_task(
         let mut page_right = false;
         if let Ok(event) = event {
             match event {
-                event::MatrixEvent::PageLeft => {
+                event::MatrixEvent::Left => {
                     page_left = true;
                 }
-                event::MatrixEvent::PageRight => {
+                event::MatrixEvent::Right => {
                     page_right = true;
                 }
-                _ => {
-                    warn!("Unexpected event received in matrix task: {:?}", event);
+                event::MatrixEvent::Select => {
+                    state::internal_set_transition_state(!state::get_transition_state());
                 }
             }
         }

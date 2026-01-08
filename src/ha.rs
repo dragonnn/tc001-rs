@@ -2,6 +2,7 @@ use alloc::{boxed::Box, string::String};
 use core::{fmt::Write as _, sync::atomic::Ordering};
 
 use embassy_executor::Spawner;
+use embassy_futures::select::{select, Either};
 use embassy_ha::{BinaryState, MqttState};
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, channel::Channel};
 use embassy_time::Timer;
@@ -102,6 +103,31 @@ pub async fn ha_task(spawner: Spawner, stack: embassy_net::Stack<'static>) {
         },
     );
 
+    let heap_usage = embassy_ha::create_sensor(
+        &device,
+        "heap_usage",
+        embassy_ha::SensorConfig {
+            common: embassy_ha::EntityCommonConfig { name: Some("Heap Usage"), ..Default::default() },
+            state_class: embassy_ha::StateClass::Measurement,
+            class: embassy_ha::SensorClass::Generic,
+            unit: Some("bytes"),
+            suggested_display_precision: Some(0),
+        },
+    );
+
+    let heap_max_usage = embassy_ha::create_sensor(
+        &device,
+        "heap_max_usage",
+        embassy_ha::SensorConfig {
+            common: embassy_ha::EntityCommonConfig { name: Some("Heap Max Usage"), ..Default::default() },
+            state_class: embassy_ha::StateClass::Measurement,
+            class: embassy_ha::SensorClass::Generic,
+            unit: Some("bytes"),
+            suggested_display_precision: Some(0),
+        },
+    );
+
+    spawner.must_spawn(heap_class(heap_usage, heap_max_usage));
     spawner.must_spawn(switch_class(switch_indicator1, 0));
     spawner.must_spawn(switch_class(switch_indicator2, 1));
     spawner.must_spawn(switch_class(switch_indicator3, 2));
@@ -128,7 +154,14 @@ async fn switch_class(mut switch: embassy_ha::Switch<'static>, index: usize) {
 #[embassy_executor::task]
 async fn transition_class(mut switch: embassy_ha::Switch<'static>) {
     loop {
-        state::external_set_transition_state(switch.wait().await.into());
+        match select(switch.wait(), state::wait_for_internal_transition_state_change()).await {
+            Either::First(state) => {
+                state::external_set_transition_state(state.into());
+            }
+            Either::Second(state) => {
+                switch.set(if state { BinaryState::On } else { BinaryState::Off });
+            }
+        }
     }
 }
 
@@ -154,6 +187,16 @@ async fn state() {
                 HA_STATE.store(HaState::MqttConnected, Ordering::Relaxed);
             }
         }
+    }
+}
+
+#[embassy_executor::task]
+async fn heap_class(mut heap_usage: embassy_ha::Sensor<'static>, mut heap_max_usage: embassy_ha::Sensor<'static>) {
+    loop {
+        let heap_stats = esp_alloc::HEAP.stats();
+        heap_usage.publish(heap_stats.current_usage as f32);
+        heap_max_usage.publish(heap_stats.max_usage as f32);
+        Timer::after(embassy_time::Duration::from_secs(5)).await;
     }
 }
 

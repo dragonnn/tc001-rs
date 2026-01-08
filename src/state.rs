@@ -3,6 +3,7 @@ use core::sync::atomic::{AtomicBool, Ordering};
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal};
 
 static TRANSITION_STATE: AtomicBool = AtomicBool::new(true);
+static TRANSITION_INTERNAL_CHANGED: Signal<CriticalSectionRawMutex, bool> = Signal::new();
 
 static INDICATORS_STATE: [AtomicBool; 3] = [AtomicBool::new(false), AtomicBool::new(false), AtomicBool::new(false)];
 
@@ -15,6 +16,16 @@ pub fn get_transition_state() -> bool {
 pub fn external_set_transition_state(state: bool) {
     TRANSITION_STATE.store(state, Ordering::Relaxed);
     STATE_CHANGED.signal(());
+}
+
+pub fn internal_set_transition_state(state: bool) {
+    TRANSITION_STATE.store(state, Ordering::Relaxed);
+    TRANSITION_INTERNAL_CHANGED.signal(state);
+    STATE_CHANGED.signal(());
+}
+
+pub async fn wait_for_internal_transition_state_change() -> bool {
+    TRANSITION_INTERNAL_CHANGED.wait().await
 }
 
 pub fn set_indicator_state(index: usize, state: bool) {

@@ -11,12 +11,15 @@ pub async fn button_task(mut left: Input<'static>, mut mid: Input<'static>, mut 
         match select3(left.wait_for_falling_edge(), mid.wait_for_falling_edge(), right.wait_for_falling_edge()).await {
             Either3::First(_) => {
                 info!("Left button pressed");
-                sender.send(MatrixEvent::PageLeft).await;
+                sender.send(MatrixEvent::Left).await;
             }
-            Either3::Second(_) => info!("Middle button pressed"),
+            Either3::Second(_) => {
+                info!("Middle button pressed");
+                sender.send(MatrixEvent::Select).await;
+            }
             Either3::Third(_) => {
                 info!("Right button pressed");
-                sender.send(MatrixEvent::PageRight).await;
+                sender.send(MatrixEvent::Right).await;
             }
         }
     }

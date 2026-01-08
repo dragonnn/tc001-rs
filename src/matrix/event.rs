@@ -7,10 +7,9 @@ static EVENT_CHANNEL: Channel<CriticalSectionRawMutex, MatrixEvent, 16> = Channe
 
 #[derive(Debug, Clone, Copy)]
 pub enum MatrixEvent {
-    PageLeft,
-    PageRight,
-    TransitionLock,
-    TransitionUnlock,
+    Left,
+    Right,
+    Select,
 }
 
 pub fn get_event_channel_sender() -> DynamicSender<'static, MatrixEvent> {

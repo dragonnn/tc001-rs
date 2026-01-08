@@ -42,7 +42,6 @@ mod adc;
 mod buttons;
 mod ds1307;
 mod ha;
-mod heap;
 mod matrix;
 mod mk_static;
 mod ntp;
@@ -108,15 +107,10 @@ async fn main(spawner: Spawner) {
     );
 
     let mut rtc = esp_hal::rtc_cntl::Rtc::new(peripherals.LPWR);
-    info!("estimate_xtal_frequency: {}", rtc.estimate_xtal_frequency());
     static RTC: StaticCell<esp_hal::rtc_cntl::Rtc> = StaticCell::new();
     let rtc = RTC.init(rtc);
 
     spawner.must_spawn(ds1307::ds1307_task(i2c0, rtc));
-
-    Timer::after(Duration::from_millis(10)).await;
-
-    spawner.must_spawn(heap::heap_task());
 
     info!("Embassy initialized!");
     let led = peripherals.GPIO32;
