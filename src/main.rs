@@ -115,7 +115,7 @@ async fn main(spawner: Spawner) {
     info!("Embassy initialized!");
     let led = peripherals.GPIO32;
     let rmt = peripherals.RMT;
-    static APP_CORE_STACK: StaticCell<Stack<{ 8 * 1024 }>> = StaticCell::new();
+    static APP_CORE_STACK: StaticCell<Stack<{ 28 * 1024 }>> = StaticCell::new();
     let app_core_stack = APP_CORE_STACK.init(Stack::new());
 
     let rtc2 = &*rtc;

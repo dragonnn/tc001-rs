@@ -35,7 +35,7 @@ impl Pages {
         }
     }
 
-    pub fn render<T: PageTarget>(&self, target: &mut T) {
+    pub fn render<T: PageTarget>(&mut self, target: &mut T) {
         match self {
             Pages::Time(page) => page.render(target),
             Pages::Date(page) => page.render(target),

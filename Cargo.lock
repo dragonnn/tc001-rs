@@ -1866,6 +1866,7 @@ dependencies = [
  "smoltcp",
  "static_cell",
  "thiserror",
+ "tinygif",
 ]
 
 [[package]]
@@ -2146,6 +2147,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.114",
+]
+
+[[package]]
+name = "tinygif"
+version = "0.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09f1406b710986188de8d393c810213d4bbf940e327d90d52cff9930d007a248"
+dependencies = [
+ "embedded-graphics",
+ "heapless 0.7.17",
 ]
 
 [[package]]
