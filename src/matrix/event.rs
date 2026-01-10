@@ -74,7 +74,7 @@ impl MatrixEventDetails {
     }
 
     pub fn is_long_press(&self) -> bool {
-        self.duration >= Duration::from_millis(1000)
+        self.duration >= Duration::from_millis(500)
     }
 
     pub fn is_single_press(&self) -> bool {
