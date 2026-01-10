@@ -85,4 +85,8 @@ impl Time {
                 .ok();
         }
     }
+
+    pub fn handle_event(&mut self, _event: crate::matrix::event::MatrixEventDetails) {
+        // No event handling needed for Time page
+    }
 }

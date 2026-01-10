@@ -54,4 +54,8 @@ impl Battery {
         let time_style = AwtrixFont::new(Rgb888::YELLOW);
         Text::new(self.current_battery.as_str(), Point::new(12, 1), time_style).draw(target).ok();
     }
+
+    pub fn handle_event(&mut self, _event: crate::matrix::event::MatrixEventDetails) {
+        // No event handling needed for Time page
+    }
 }

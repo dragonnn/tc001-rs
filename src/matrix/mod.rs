@@ -64,6 +64,7 @@ pub fn matrix_task(
     let mut pages = Vec::with_capacity(4);
     pages.push(pages::Time::new(rtc));
     pages.push(pages::Date::new(rtc));
+    pages.push(pages::Timer::new(rtc));
     pages.push(pages::Battery::new());
 
     let mut current_page_index = 0;
@@ -106,16 +107,20 @@ pub fn matrix_task(
         let mut page_left = false;
         let mut page_right = false;
         if let Ok(event) = event {
-            match event {
-                event::MatrixEvent::Left => {
-                    page_left = true;
+            if event.is_single_press() && !event.is_long_press() {
+                match event.get_main() {
+                    event::MatrixEvent::Left => {
+                        page_left = true;
+                    }
+                    event::MatrixEvent::Right => {
+                        page_right = true;
+                    }
+                    event::MatrixEvent::Select => {
+                        state::internal_set_transition_state(!state::get_transition_state());
+                    }
                 }
-                event::MatrixEvent::Right => {
-                    page_right = true;
-                }
-                event::MatrixEvent::Select => {
-                    state::internal_set_transition_state(!state::get_transition_state());
-                }
+            } else {
+                pages[current_page_index].handle_event(event);
             }
         }
 

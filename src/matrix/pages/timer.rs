@@ -3,16 +3,16 @@ use core::fmt::Write as _;
 
 use embedded_graphics::{pixelcolor::Rgb888, prelude::*};
 
-use crate::matrix::{fonts::AwtrixFont, pages::Pages};
+use crate::matrix::{event::MatrixEventDetails, fonts::AwtrixFont, pages::Pages};
 
-pub struct Date {
+pub struct Timer {
     rtc: &'static esp_hal::rtc_cntl::Rtc<'static>,
     current_time: String,
 }
 
-impl Date {
+impl Timer {
     pub fn new(rtc: &'static esp_hal::rtc_cntl::Rtc<'static>) -> Pages {
-        Pages::Date(Box::new(Date { rtc, current_time: String::from("00:00:00") }))
+        Pages::Timer(Box::new(Timer { rtc, current_time: String::from("00:00:00") }))
     }
 
     pub fn update(&mut self) {
@@ -32,7 +32,5 @@ impl Date {
         embedded_graphics::text::Text::new(self.current_time.as_str(), Point::new(3, 1), style).draw(target).ok();
     }
 
-    pub fn handle_event(&mut self, _event: crate::matrix::event::MatrixEventDetails) {
-        // No event handling needed for Time page
-    }
+    pub fn handle_event(&mut self, event: MatrixEventDetails) {}
 }
