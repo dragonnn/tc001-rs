@@ -53,7 +53,7 @@ impl Timer {
         //let style = super::font::mateine(embedded_graphics::pixelcolor::Rgb888::RED);
         //let style = AwtrixFont::new(Rgb888::YELLOW);
         //embedded_graphics::text::Text::new(self.current_time.as_str(), Point::new(3, 1), style).draw(target).ok();
-        let style = AwtrixFont::new(Rgb888::YELLOW);
+        let style = AwtrixFont::new(if self.timer_started_at.is_some() { Rgb888::YELLOW } else { Rgb888::WHITE });
 
         for frame in self.icon.frames().skip(self.current_frame) {
             //frame.bounding_box().into_styled(PrimitiveStyle::with_fill(Rgb888::BLACK)).draw(target).ok();

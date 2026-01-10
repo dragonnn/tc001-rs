@@ -18,6 +18,7 @@ use embassy_executor::Spawner;
 use embassy_net::StackResources;
 use embassy_time::{Duration, Timer};
 use embedded_graphics::{prelude::*, Drawable};
+use embedded_hal::pwm::SetDutyCycle;
 use esp_backtrace as _;
 use esp_hal::{
     clock::CpuClock,
@@ -25,6 +26,7 @@ use esp_hal::{
     gpio::{Input, InputConfig, Level, Output, OutputConfig, Pull},
     i2c::master::I2c,
     interrupt::software::SoftwareInterruptControl,
+    ledc::{channel::ChannelHW, timer::TimerIFace},
     rmt::Rmt,
     rng::Rng,
     system::Stack,
@@ -40,6 +42,7 @@ extern crate alloc;
 
 mod adc;
 mod buttons;
+mod buzzer;
 mod ds1307;
 mod ha;
 mod matrix;
@@ -77,6 +80,30 @@ async fn main(spawner: Spawner) {
     info!("Peripherals initialized");
     let output_config = esp_hal::gpio::OutputConfig::default();
     let buzzer = Output::new(peripherals.GPIO15, Level::Low, OutputConfig::default());
+
+    let mut ledc = esp_hal::ledc::Ledc::new(peripherals.LEDC);
+    ledc.set_global_slow_clock(esp_hal::ledc::LSGlobalClkSource::APBClk);
+
+    let mut hs_timer = ledc.timer::<esp_hal::ledc::HighSpeed>(esp_hal::ledc::timer::Number::Timer1);
+    hs_timer
+        .configure(esp_hal::ledc::timer::config::Config {
+            duty: esp_hal::ledc::timer::config::Duty::Duty8Bit,
+            clock_source: esp_hal::ledc::timer::HSClockSource::APBClk,
+            frequency: Rate::from_khz(2),
+        })
+        .unwrap();
+
+    let mut channel = ledc.channel(esp_hal::ledc::channel::Number::Channel0, buzzer);
+    esp_hal::ledc::channel::ChannelIFace::configure(
+        &mut channel,
+        esp_hal::ledc::channel::config::Config {
+            timer: &hs_timer,
+            duty_pct: 0,
+            drive_mode: esp_hal::gpio::DriveMode::PushPull,
+        },
+    )
+    .unwrap();
+    channel.set_duty_hw(0);
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     let mut wdt0 = timg0.wdt;

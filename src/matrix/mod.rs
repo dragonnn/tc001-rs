@@ -107,7 +107,7 @@ pub fn matrix_task(
         let mut page_left = false;
         let mut page_right = false;
         if let Ok(event) = event {
-            if event.is_single_press() && !event.is_long_press() {
+            if event.is_single_press() && event.is_long_press() {
                 match event.get_main() {
                     event::MatrixEvent::Left => {
                         page_left = true;
