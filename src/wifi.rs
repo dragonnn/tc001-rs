@@ -3,9 +3,7 @@ use core::sync::atomic::Ordering;
 
 use atomic_enum::atomic_enum;
 use embassy_time::{Duration, Timer};
-use esp_radio::wifi::{
-    scan::ScanConfig, sta::StationConfig, ModeConfig, WifiController, WifiDevice, WifiEvent, WifiStationState,
-};
+use esp_radio::wifi::{scan::ScanConfig, sta::StationConfig, ModeConfig, WifiController, WifiDevice, WifiEvent};
 
 static WIFI_STATE: AtomicWiFiState = AtomicWiFiState::new(WiFiState::Disconnected);
 
@@ -27,21 +25,17 @@ const PASSWORD1: &str = dotenvy_macro::dotenv!("WIFI_PASSWORD1");
 #[embassy_executor::task]
 pub async fn wifi_task(mut controller: WifiController<'static>, storage: crate::storage::Storage) {
     info!("start connection task");
-    info!("Device capabilities: {:?}", controller.capabilities());
     storage.save(&crate::storage::Key::Wifi(SSID0), &PASSWORD0.to_string()).await.expect("failed saving ssid0");
     storage.save(&crate::storage::Key::Wifi(SSID1), &PASSWORD1.to_string()).await.expect("failed saving ssid1");
 
     let mut wifi_connect_errors: u8 = 0;
     loop {
-        match esp_radio::wifi::station_state() {
-            WifiStationState::Connected => {
-                // wait until we're no longer connected
-                WIFI_STATE.store(WiFiState::Connected, Ordering::Relaxed);
-                controller.wait_for_event(WifiEvent::StationDisconnected).await;
-                error!("WiFi disconnected!");
-                Timer::after(Duration::from_millis(5000)).await
-            }
-            _ => {}
+        if controller.is_connected().unwrap_or_default() {
+            // wait until we're no longer connected
+            WIFI_STATE.store(WiFiState::Connected, Ordering::Relaxed);
+            controller.wait_for_event(WifiEvent::StationDisconnected).await;
+            error!("WiFi disconnected!");
+            Timer::after(Duration::from_millis(5000)).await
         }
 
         let mut found_network = false;
