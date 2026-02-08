@@ -61,7 +61,6 @@ esp-radio = { version = "0.17.0", features = [
   "esp-alloc",
   "esp32",
   "log-04",
-  "smoltcp",
   "wifi",
   "unstable"
 ] }

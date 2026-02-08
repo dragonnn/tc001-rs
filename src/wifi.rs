@@ -3,7 +3,7 @@ use core::sync::atomic::Ordering;
 
 use atomic_enum::atomic_enum;
 use embassy_time::{Duration, Timer};
-use esp_radio::wifi::{scan::ScanConfig, sta::StationConfig, ModeConfig, WifiController, WifiDevice, WifiEvent};
+use esp_radio::wifi::{scan::ScanConfig, sta::StationConfig, WifiController};
 
 static WIFI_STATE: AtomicWiFiState = AtomicWiFiState::new(WiFiState::Disconnected);
 
@@ -33,14 +33,14 @@ pub async fn wifi_task(mut controller: WifiController<'static>, storage: crate::
         if controller.is_connected().unwrap_or_default() {
             // wait until we're no longer connected
             WIFI_STATE.store(WiFiState::Connected, Ordering::Relaxed);
-            controller.wait_for_event(WifiEvent::StationDisconnected).await;
+            controller.wait_for_disconnect_async().await.ok();
             error!("WiFi disconnected!");
             Timer::after(Duration::from_millis(5000)).await
         }
 
         let mut found_network = false;
         if !matches!(controller.is_started(), Ok(true)) {
-            let mut client_config = ModeConfig::Station(StationConfig::default());
+            let mut client_config = esp_radio::wifi::Config::Station(StationConfig::default());
             controller.set_config(&client_config).unwrap();
             info!("Starting wifi");
             controller.start_async().await.unwrap();
@@ -56,8 +56,9 @@ pub async fn wifi_task(mut controller: WifiController<'static>, storage: crate::
                 if let Ok(password) = storage.read::<String>(&crate::storage::Key::Wifi(&ap.ssid)).await {
                     info!("Found saved network: {}, trying to connect...", ap.ssid);
                     WIFI_STATE.store(WiFiState::Connecting, Ordering::Relaxed);
-                    client_config =
-                        ModeConfig::Station(StationConfig::default().with_ssid(ap.ssid).with_password(password));
+                    client_config = esp_radio::wifi::Config::Station(
+                        StationConfig::default().with_ssid(ap.ssid).with_password(password),
+                    );
                     controller.set_config(&client_config).unwrap();
                     found_network = true;
                     break;
@@ -91,7 +92,7 @@ pub async fn wifi_task(mut controller: WifiController<'static>, storage: crate::
 }
 
 #[embassy_executor::task]
-pub async fn net_task(mut runner: embassy_net::Runner<'static, WifiDevice<'static>>) {
+pub async fn net_task(mut runner: embassy_net::Runner<'static, esp_radio::wifi::Interface<'static>>) {
     runner.run().await
 }
 

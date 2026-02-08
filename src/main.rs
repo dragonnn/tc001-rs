@@ -151,7 +151,7 @@ async fn main(spawner: Spawner) {
         matrix::matrix_task(rmt, led, rtc2, wdt0);
     });
 
-    let wifi_config = esp_radio::wifi::Config::default()
+    let wifi_config = esp_radio::wifi::ControllerConfig::default()
         .with_rx_queue_size(2)
         .with_tx_queue_size(2)
         .with_static_rx_buf_num(2)
