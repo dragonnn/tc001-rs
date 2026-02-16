@@ -28,6 +28,8 @@ pub async fn wifi_task(mut controller: WifiController<'static>, storage: crate::
     storage.save(&crate::storage::Key::Wifi(SSID0), &PASSWORD0.to_string()).await.expect("failed saving ssid0");
     storage.save(&crate::storage::Key::Wifi(SSID1), &PASSWORD1.to_string()).await.expect("failed saving ssid1");
 
+    controller.set_power_saving(esp_radio::wifi::PowerSaveMode::Maximum).unwrap();
+
     let mut wifi_connect_errors: u8 = 0;
     loop {
         if controller.is_connected().unwrap_or_default() {
