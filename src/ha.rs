@@ -29,11 +29,11 @@ static MQTT_STATE_CHANNEL: Channel<CriticalSectionRawMutex, MqttState, 1> = Chan
 static HA_STATE: AtomicHaState = AtomicHaState::new(HaState::Disconnected);
 
 #[embassy_executor::task]
-pub async fn ha_task(spawner: Spawner, stack: embassy_net::Stack<'static>) {
+pub async fn ha_task(spawner: Spawner, stack: embassy_net::Stack<'static>, mac_address: [u8; 6]) {
     crate::wifi::wait_for_connection(&stack).await;
     Timer::after(embassy_time::Duration::from_secs(1)).await;
 
-    let mac = esp_radio::wifi::station_mac();
+    let mac = mac_address;
     info!("Device MAC address: {:02X?}", mac);
 
     let mut device_id = String::with_capacity(13);

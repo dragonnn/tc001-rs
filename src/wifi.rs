@@ -32,7 +32,7 @@ pub async fn wifi_task(mut controller: WifiController<'static>, storage: crate::
 
     let mut wifi_connect_errors: u8 = 0;
     loop {
-        if controller.is_connected().unwrap_or_default() {
+        if controller.is_connected() {
             // wait until we're no longer connected
             WIFI_STATE.store(WiFiState::Connected, Ordering::Relaxed);
             controller.wait_for_disconnect_async().await.ok();
@@ -41,32 +41,32 @@ pub async fn wifi_task(mut controller: WifiController<'static>, storage: crate::
         }
 
         let mut found_network = false;
-        if !matches!(controller.is_started(), Ok(true)) {
-            let mut client_config = esp_radio::wifi::Config::Station(StationConfig::default());
-            controller.set_config(&client_config).unwrap();
-            info!("Starting wifi");
-            controller.start_async().await.unwrap();
-            info!("Wifi started!");
+        //if !matches!(controller.is_started(), Ok(true)) {
+        let mut client_config = esp_radio::wifi::Config::Station(StationConfig::default());
+        controller.set_config(&client_config).unwrap();
+        info!("Starting wifi");
+        //controller.start().await.unwrap();
+        info!("Wifi started!");
 
-            info!("Scan");
-            WIFI_STATE.store(WiFiState::Scanning, Ordering::Relaxed);
-            let scan_config = ScanConfig::default().with_max(5);
-            let result = controller.scan_with_config_async(scan_config).await.unwrap();
-            info!("Scan complete, found {} networks", result.len());
-            for ap in result {
-                info!("{:?}", ap);
-                if let Ok(password) = storage.read::<String>(&crate::storage::Key::Wifi(&ap.ssid)).await {
-                    info!("Found saved network: {}, trying to connect...", ap.ssid);
-                    WIFI_STATE.store(WiFiState::Connecting, Ordering::Relaxed);
-                    client_config = esp_radio::wifi::Config::Station(
-                        StationConfig::default().with_ssid(ap.ssid).with_password(password),
-                    );
-                    controller.set_config(&client_config).unwrap();
-                    found_network = true;
-                    break;
-                }
+        info!("Scan");
+        WIFI_STATE.store(WiFiState::Scanning, Ordering::Relaxed);
+        let scan_config = ScanConfig::default().with_max(5);
+        let result = controller.scan_async(&scan_config).await.unwrap();
+        info!("Scan complete, found {} networks", result.len());
+        for ap in result {
+            info!("{:?}", ap);
+            if let Ok(password) = storage.read::<String>(&crate::storage::Key::Wifi(ap.ssid.as_str())).await {
+                info!("Found saved network: {}, trying to connect...", ap.ssid.as_str());
+                WIFI_STATE.store(WiFiState::Connecting, Ordering::Relaxed);
+                client_config = esp_radio::wifi::Config::Station(
+                    StationConfig::default().with_ssid(ap.ssid).with_password(password),
+                );
+                controller.set_config(&client_config).unwrap();
+                found_network = true;
+                break;
             }
         }
+        //}
         info!("About to connect...");
         if found_network {
             match controller.connect_async().await {

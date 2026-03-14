@@ -1,6 +1,4 @@
 #![feature(impl_trait_in_assoc_type)]
-#![feature(slice_as_array)]
-#![feature(new_zeroed_alloc)]
 #![no_std]
 #![no_main]
 #![deny(
@@ -164,6 +162,7 @@ async fn main(spawner: Spawner) {
         esp_radio::wifi::new(peripherals.WIFI, wifi_config).expect("Failed to initialize WIFI controller");
 
     let wifi_interface = interfaces.station;
+    let mac_address = wifi_interface.mac_address();
 
     let config = embassy_net::Config::dhcpv4(Default::default());
 
@@ -188,7 +187,7 @@ async fn main(spawner: Spawner) {
     let middle = Input::new(peripherals.GPIO14, InputConfig::default().with_pull(Pull::Up));
 
     spawner.must_spawn(ntp::ntp_task(stack));
-    spawner.must_spawn(ha::ha_task(spawner, stack));
+    spawner.must_spawn(ha::ha_task(spawner, stack, mac_address));
     spawner.must_spawn(buttons::button_task(left, right, middle));
 
     let mut adc_config = esp_hal::analog::adc::AdcConfig::default();
