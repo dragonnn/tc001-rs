@@ -398,7 +398,7 @@ where
             .with_carrier_modulation(false)
             .with_idle_output(true);
 
-        let channel = channel.configure_tx(&config).unwrap();
+        let channel = channel.configure_tx(&config).unwrap().with_pin(pin);
 
         // Assume the RMT peripheral is set up to use the APB clock
         let clocks = Clocks::get();
