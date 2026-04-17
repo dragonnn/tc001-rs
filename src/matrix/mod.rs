@@ -88,11 +88,12 @@ pub fn matrix_task(
             current_page.render(&mut matrix);
             status.update();
             status.render(&mut matrix);
+            matrix.flush_with_gamma().ok();
+            wdt0.feed();
             let now = embassy_time::Instant::now();
             loop {
-                matrix.flush_with_gamma().ok();
-                wdt0.feed();
                 Delay::new().delay_millis(delay_millis);
+                wdt0.feed();
                 let now2 = embassy_time::Instant::now();
                 if let Some(elapsed) = now2.checked_duration_since(now) {
                     if elapsed >= Duration::from_millis(100) {
