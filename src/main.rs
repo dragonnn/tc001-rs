@@ -31,7 +31,6 @@ use esp_hal::{
     time::Rate,
     timer::timg::TimerGroup,
 };
-use esp_hal_smartled::{SmartLedsAdapter, SmartLedsAdapterAsync};
 use esp_rtos::embassy::{Executor, InterruptExecutor};
 use log::{error, info};
 use smart_leds::SmartLedsWriteAsync;
@@ -135,7 +134,7 @@ async fn main(spawner: Spawner) {
     static RTC: StaticCell<esp_hal::rtc_cntl::Rtc> = StaticCell::new();
     let rtc = RTC.init(rtc);
 
-    spawner.must_spawn(ds1307::ds1307_task(i2c0, rtc));
+    spawner.spawn(ds1307::ds1307_task(i2c0, rtc).unwrap());
 
     info!("Embassy initialized!");
     let led = peripherals.GPIO32;
@@ -178,17 +177,17 @@ async fn main(spawner: Spawner) {
 
     let storage = storage::init(peripherals.FLASH).await;
 
-    spawner.must_spawn(state::state_task(storage.clone()));
-    spawner.must_spawn(wifi::wifi_task(wifi_controller, *&storage));
-    spawner.must_spawn(wifi::net_task(runner));
+    spawner.spawn(state::state_task(storage.clone()).unwrap());
+    spawner.spawn(wifi::wifi_task(wifi_controller, *&storage).unwrap());
+    spawner.spawn(wifi::net_task(runner).unwrap());
 
     let left = Input::new(peripherals.GPIO26, InputConfig::default().with_pull(Pull::Up));
     let right = Input::new(peripherals.GPIO27, InputConfig::default().with_pull(Pull::Up));
     let middle = Input::new(peripherals.GPIO14, InputConfig::default().with_pull(Pull::Up));
 
-    spawner.must_spawn(ntp::ntp_task(stack));
-    spawner.must_spawn(ha::ha_task(spawner, stack, mac_address));
-    spawner.must_spawn(buttons::button_task(left, right, middle));
+    spawner.spawn(ntp::ntp_task(stack).unwrap());
+    spawner.spawn(ha::ha_task(spawner, stack, mac_address).unwrap());
+    spawner.spawn(buttons::button_task(left, right, middle).unwrap());
 
     let mut adc_config = esp_hal::analog::adc::AdcConfig::default();
 
@@ -197,7 +196,7 @@ async fn main(spawner: Spawner) {
 
     let adc = esp_hal::analog::adc::Adc::new(peripherals.ADC1, adc_config);
 
-    spawner.must_spawn(adc::adc_task(adc, battery_pin, light_sensor_pin));
+    spawner.spawn(adc::adc_task(adc, battery_pin, light_sensor_pin).unwrap());
 
     loop {
         Timer::after(Duration::from_millis(1000)).await;

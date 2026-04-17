@@ -1,4 +1,3 @@
-#![feature(strict_overflow_ops)]
 //! MQTT Home Assistant integration library for the [Embassy](https://embassy.dev/) async runtime.
 //!
 //! # Features

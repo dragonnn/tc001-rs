@@ -127,14 +127,14 @@ pub async fn ha_task(spawner: Spawner, stack: embassy_net::Stack<'static>, mac_a
         },
     );
 
-    spawner.must_spawn(heap_class(heap_usage, heap_max_usage));
-    spawner.must_spawn(switch_class(switch_indicator1, 0));
-    spawner.must_spawn(switch_class(switch_indicator2, 1));
-    spawner.must_spawn(switch_class(switch_indicator3, 2));
+    spawner.spawn(heap_class(heap_usage, heap_max_usage).unwrap());
+    spawner.spawn(switch_class(switch_indicator1, 0).unwrap());
+    spawner.spawn(switch_class(switch_indicator2, 1).unwrap());
+    spawner.spawn(switch_class(switch_indicator3, 2).unwrap());
 
-    spawner.must_spawn(transition_class(switch_transition));
+    spawner.spawn(transition_class(switch_transition).unwrap());
 
-    spawner.must_spawn(state());
+    spawner.spawn(state().unwrap());
 
     let mqtt_params =
         embassy_ha::MqttConnectParams { username: Some(MQTT_USER), password: Some(MQTT_PASSWORD.as_bytes()) };

@@ -8,7 +8,7 @@ use esp_hal::{
     rmt::{PulseCode, Rmt},
     time::Rate,
 };
-use esp_hal_smartled::SmartLedsAdapter;
+use esp_hal_smartled::Ws2812SmartLeds as SmartLedsAdapter;
 
 use crate::{adc::get_brightness_percent, state};
 

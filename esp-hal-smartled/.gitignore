@@ -1,2 +1,1 @@
-# Ignore file because it will be different based on test target.
-/rust-toolchain.toml
+/target
