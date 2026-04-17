@@ -42,7 +42,7 @@ pub fn matrix_task(
         LedColor,
         esp_hal_smartled::color_order::Grb,
         esp_hal_smartled::Ws2812bTiming,
-    >::new(rmt_channel, led, &mut rmt_buffer)
+    >::new_with_memsize(rmt_channel, led, &mut rmt_buffer, 4)
     .expect("Failed to create SmartLeds adapter");
     info!("Led adapter initialized.");
 
