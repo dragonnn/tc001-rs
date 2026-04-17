@@ -68,10 +68,12 @@ async fn main(spawner: Spawner) -> ! {
         let rmt = Rmt::new(peripherals.RMT, freq)
             .expect("Failed to initialize RMT0")
             .into_async();
+        let mut rmt_buffer = [esp_hal::rmt::PulseCode::default(); buffer_size::<RGB8>(LEDS)];
         // Configure color order and timing implementation as needed.
         RmtSmartLeds::<{ buffer_size::<RGB8>(LEDS) }, _, RGB8, color_order::Rgb, Ws2812Timing>::new(
             rmt.channel0,
             led_pin,
+            &mut rmt_buffer,
         )
         .unwrap()
     };

@@ -10,8 +10,9 @@
 //! ```rust,ignore
 //! let rmt = Rmt::new(peripherals.RMT, Rate::from_mhz(80)).unwrap();
 //!
+//! let mut rmt_buffer = [PulseCode::default(); buffer_size::<RGB8>(1)];
 //! let mut led = RmtSmartLeds::<{ buffer_size::<RGB8>(1) }, _, RGB8, color_order::Rgb, Ws2812Timing>::new(
-//!     rmt.channel0, peripherals.GPIO2
+//!     rmt.channel0, peripherals.GPIO2, &mut rmt_buffer
 //! );
 //!
 //! led.write(brightness([RED], 10)).unwrap();
@@ -313,7 +314,7 @@ where
     Timing: crate::Timing,
 {
     channel: Option<Channel<'d, Mode, Tx>>,
-    rmt_buffer: [PulseCode; BUFFER_SIZE],
+    rmt_buffer: &'d mut [PulseCode; BUFFER_SIZE],
     pulses: (PulseCode, PulseCode),
     _order: PhantomData<Order>,
     _timing: PhantomData<Timing>,
@@ -360,12 +361,12 @@ where
     /// # Errors
     ///
     /// If any configuration issue with the RMT [`Channel`] occurs, the error will be returned.
-    pub fn new<Ch, P>(channel: Ch, pin: P) -> Result<Self, RmtError>
+    pub fn new<Ch, P>(channel: Ch, pin: P, rmt_buffer: &'d mut [PulseCode; BUFFER_SIZE]) -> Result<Self, RmtError>
     where
         Ch: TxChannelCreator<'d, Mode>,
         P: PeripheralOutput<'d>,
     {
-        Self::new_with_memsize(channel, pin, 1)
+        Self::new_with_memsize(channel, pin, rmt_buffer, 1)
     }
     /// Creates a new [`RmtSmartLeds`] that drives the provided output using the given RMT channel.
     ///
@@ -380,7 +381,12 @@ where
     /// # Errors
     ///
     /// If any configuration issue with the RMT [`Channel`] occurs, the error will be returned.
-    pub fn new_with_memsize<Ch, P>(channel: Ch, pin: P, memsize: u8) -> Result<Self, RmtError>
+    pub fn new_with_memsize<Ch, P>(
+        channel: Ch,
+        pin: P,
+        rmt_buffer: &'d mut [PulseCode; BUFFER_SIZE],
+        memsize: u8,
+    ) -> Result<Self, RmtError>
     where
         Ch: TxChannelCreator<'d, Mode>,
         P: PeripheralOutput<'d>,
@@ -405,7 +411,7 @@ where
             Level::Low,
             ((Timing::TIME_0_LOW as u32 * src_clock) / 1000) as u16,
         );
-        let mut rmt_buffer = [zero_pulse; _];
+        rmt_buffer.fill(zero_pulse);
         rmt_buffer[BUFFER_SIZE - 1] = PulseCode::end_marker();
         Ok(Self {
             channel: Some(channel),
@@ -468,7 +474,7 @@ where
         // This is currently unavoidable since transmit consumes the channel on error.
         // This is a known design flaw in the current RMT API and will be fixed soon.
         // We should adjust our usage accordingly as soon as possible.
-        let transmit = channel.transmit(&self.rmt_buffer);
+        let transmit = channel.transmit(self.rmt_buffer);
         match transmit {
             Ok(t) => match t.wait() {
                 Ok(c) => {
@@ -536,7 +542,7 @@ where
         async move {
             res?;
             // Perform the actual RMT operation. We use the u32 values here right away.
-            self.channel.as_mut().unwrap().transmit(&self.rmt_buffer).await?;
+            self.channel.as_mut().unwrap().transmit(self.rmt_buffer).await?;
             Ok(())
         }
     }

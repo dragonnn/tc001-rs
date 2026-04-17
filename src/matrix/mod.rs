@@ -1,14 +1,10 @@
-use alloc::{boxed::Box, vec::Vec};
-use core::fmt::Write as _;
+use alloc::vec::Vec;
 
 use embassy_time::Duration;
 use embedded_graphics::{prelude::*, primitives::Rectangle};
-use esp_hal::{
-    delay::Delay,
-    rmt::{PulseCode, Rmt},
-    time::Rate,
-};
-use esp_hal_smartled::Ws2812SmartLeds as SmartLedsAdapter;
+use esp_hal::{delay::Delay, rmt::Rmt, time::Rate};
+use esp_hal_smartled::RmtSmartLeds;
+use smart_leds::RGB8;
 
 use crate::{adc::get_brightness_percent, state};
 
@@ -20,7 +16,7 @@ mod status;
 
 pub fn matrix_task(
     rmt: esp_hal::peripherals::RMT<'static>,
-    mut led: esp_hal::peripherals::GPIO32<'static>,
+    led: esp_hal::peripherals::GPIO32<'static>,
     rtc: &'static esp_hal::rtc_cntl::Rtc<'static>,
     mut wdt0: crate::Wdt0,
 ) {
@@ -34,16 +30,20 @@ pub fn matrix_task(
     info!("Rmt initialized.");
 
     const NUM_LEDS: usize = 32 * 8;
-    const BUFFER_SIZE: usize = esp_hal_smartled::buffer_size_async(NUM_LEDS);
+    const BUFFER_SIZE: usize = esp_hal_smartled::buffer_size::<RGB8>(NUM_LEDS);
     let rmt_channel = rmt.channel0;
-    //let mut rmt_buffer = [0_u32; esp_hal_smartled::buffer_size_async(NUM_LEDS)];
-    let rmt_buffer = alloc::boxed::Box::<[PulseCode; BUFFER_SIZE]>::new_zeroed();
+    let rmt_buffer = alloc::boxed::Box::<[esp_hal::rmt::PulseCode; BUFFER_SIZE]>::new_zeroed();
     let mut rmt_buffer = unsafe { rmt_buffer.assume_init() };
 
-    info!("Rmt buffer initialized: {:?}", rmt_buffer.len());
-
-    let led: SmartLedsAdapter<'_, BUFFER_SIZE> =
-        { SmartLedsAdapter::new(rmt_channel, led, rmt_buffer.as_mut_array().unwrap()) };
+    type LedColor = RGB8;
+    let led = RmtSmartLeds::<
+        { esp_hal_smartled::buffer_size::<LedColor>(32 * 8) },
+        _,
+        LedColor,
+        esp_hal_smartled::color_order::Rgb,
+        esp_hal_smartled::Sk68xxTiming,
+    >::new(rmt_channel, led, &mut rmt_buffer)
+    .expect("Failed to create SmartLeds adapter");
     info!("Led adapter initialized.");
 
     let mut matrix = smart_leds_matrix::SmartLedMatrix::<_, _, { NUM_LEDS }>::new(
