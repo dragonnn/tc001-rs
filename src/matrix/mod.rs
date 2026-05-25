@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 
 use embassy_time::Duration;
 use embedded_graphics::{prelude::*, primitives::Rectangle};
-use esp_hal::{delay::Delay, rmt::Rmt, time::Rate};
+use esp_hal::{rmt::Rmt, time::Rate};
 use esp_hal_smartled::RmtSmartLeds;
 use smart_leds::RGB8;
 
@@ -14,7 +14,8 @@ mod fonts;
 mod pages;
 mod status;
 
-pub fn matrix_task(
+#[embassy_executor::task]
+pub async fn matrix_task(
     rmt: esp_hal::peripherals::RMT<'static>,
     led: esp_hal::peripherals::GPIO32<'static>,
     rtc: &'static esp_hal::rtc_cntl::Rtc<'static>,
@@ -22,11 +23,12 @@ pub fn matrix_task(
 ) {
     //let led = Output::new(led, Level::High, OutputConfig::default());
     info!("Rmt initializing...");
-    let rmt: Rmt<'_, esp_hal::Blocking> = {
+    let rmt = {
         let frequency: Rate = { Rate::from_mhz(80) };
         Rmt::new(rmt, frequency)
     }
-    .expect("Failed to initialize RMT");
+    .expect("Failed to initialize RMT")
+    .into_async();
     info!("Rmt initialized.");
 
     const NUM_LEDS: usize = 32 * 8;
@@ -46,7 +48,7 @@ pub fn matrix_task(
     .expect("Failed to create SmartLeds adapter");
     info!("Led adapter initialized.");
 
-    let mut matrix = smart_leds_matrix::SmartLedMatrix::<_, _, { NUM_LEDS }>::new(
+    let mut matrix = smart_leds_matrix::SmartLedMatrixAsync::<_, _, { NUM_LEDS }>::new(
         led,
         smart_leds_matrix::layout::Rectangular::new_tc001(32, 8),
     );
@@ -54,7 +56,7 @@ pub fn matrix_task(
     let handle = esp_rtos::CurrentThreadHandle::get();
     handle.set_priority(31);
 
-    matrix.flush_with_gamma().ok();
+    matrix.flush_with_gamma().await.ok();
 
     info!("Starting matrix loop");
 
@@ -88,11 +90,11 @@ pub fn matrix_task(
             current_page.render(&mut matrix);
             status.update();
             status.render(&mut matrix);
-            matrix.flush_with_gamma().ok();
+            matrix.flush_with_gamma().await.ok();
             wdt0.feed();
             let now = embassy_time::Instant::now();
             loop {
-                Delay::new().delay_millis(delay_millis);
+                embassy_time::Timer::after_millis(delay_millis as u64).await;
                 wdt0.feed();
                 let now2 = embassy_time::Instant::now();
                 if let Some(elapsed) = now2.checked_duration_since(now) {
@@ -168,9 +170,9 @@ pub fn matrix_task(
                         }
                         status.render(&mut matrix);
 
-                        matrix.flush_with_gamma().ok();
+                        matrix.flush_with_gamma().await.ok();
                         wdt0.feed();
-                        Delay::new().delay_millis(25);
+                        embassy_time::Timer::after_millis(25).await;
                     }
                 } else {
                     for i in (0..size.width).rev() {
@@ -195,9 +197,9 @@ pub fn matrix_task(
 
                         status.render(&mut matrix);
 
-                        matrix.flush_with_gamma().ok();
+                        matrix.flush_with_gamma().await.ok();
                         wdt0.feed();
-                        Delay::new().delay_millis(25);
+                        embassy_time::Timer::after_millis(25).await;
                     }
                 }
 

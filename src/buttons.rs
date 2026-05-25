@@ -2,7 +2,7 @@ use embassy_futures::{
     join::join3,
     select::{select, select3, Either, Either3},
 };
-use embassy_time::Instant;
+use embassy_time::{Duration, Instant, Timer};
 use esp_hal::gpio::Input;
 
 use crate::matrix::event::{get_event_channel_sender, MatrixEvent, MatrixEventDetails};
@@ -84,6 +84,9 @@ impl Buttons {
     }
 
     pub async fn wait_for_release(&mut self) -> MatrixEventDetails {
+        const MAX_PRESS_DURATION: Duration = Duration::from_millis(550);
+        let mut timed_out = false;
+
         loop {
             let (main, (extra0, extra1)) = match self.event.get_main() {
                 MatrixEvent::Left => {
@@ -97,16 +100,28 @@ impl Buttons {
                 }
             };
 
-            if let Some(new_button) = Self::wait_for_release_or_more_press(main, (extra0, extra1)).await {
-                info!("Button {:?} pressed while waiting for release of {:?}", new_button, self.event.get_main());
-                self.event.push_event(new_button);
-            } else {
-                break;
+            match select(Self::wait_for_release_or_more_press(main, (extra0, extra1)), Timer::after(MAX_PRESS_DURATION))
+                .await
+            {
+                Either::First(Some(new_button)) => {
+                    info!("Button {:?} pressed while waiting for release of {:?}", new_button, self.event.get_main());
+                    self.event.push_event(new_button);
+                }
+                Either::First(None) => break,
+                Either::Second(_) => {
+                    info!("Max press duration reached for {:?}", self.event.get_main());
+                    timed_out = true;
+                    break;
+                }
             }
         }
         self.event.set_duration(Instant::now().checked_duration_since(self.duration).unwrap_or_default());
-        info!("Button {:?} released after {:?}", self.event.get_main(), self.event.duration);
-        self.wait_for_all_release().await;
+        if timed_out {
+            info!("Button {:?} timed out after {:?}", self.event.get_main(), self.event.duration);
+        } else {
+            info!("Button {:?} released after {:?}", self.event.get_main(), self.event.duration);
+            self.wait_for_all_release().await;
+        }
         self.event.clone()
     }
 }

@@ -145,7 +145,11 @@ async fn main(spawner: Spawner) {
     let rtc2 = &*rtc;
     info!("Starting second core...");
     esp_rtos::start_second_core(peripherals.CPU_CTRL, sw_int.software_interrupt1, app_core_stack, move || {
-        matrix::matrix_task(rmt, led, rtc2, wdt0);
+        static EXECUTOR: StaticCell<Executor> = StaticCell::new();
+        let executor = EXECUTOR.init(Executor::new());
+        executor.run(|spawner| {
+            spawner.spawn(matrix::matrix_task(rmt, led, rtc2, wdt0).unwrap());
+        });
     });
 
     let wifi_config = esp_radio::wifi::ControllerConfig::default()
