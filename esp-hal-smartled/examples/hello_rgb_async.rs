@@ -74,6 +74,7 @@ async fn main(spawner: Spawner) -> ! {
             rmt.channel0,
             led_pin,
             &mut rmt_buffer,
+            freq,
         )
         .unwrap()
     };

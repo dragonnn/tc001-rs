@@ -94,7 +94,7 @@ pub async fn wifi_task(mut controller: WifiController<'static>, storage: crate::
 }
 
 #[embassy_executor::task]
-pub async fn net_task(mut runner: embassy_net::Runner<'static, esp_radio::wifi::Interface<'static>>) {
+pub async fn net_task(mut runner: embassy_net::Runner<'static, esp_radio::wifi::Interface>) {
     runner.run().await
 }
 

@@ -161,10 +161,10 @@ async fn main(spawner: Spawner) {
 
     //let esp_radio_ctrl = &*mk_static::mk_static!(Controller<'static>, esp_radio::init().unwrap());
 
-    let (wifi_controller, interfaces) =
+    let wifi_controller =
         esp_radio::wifi::new(peripherals.WIFI, wifi_config).expect("Failed to initialize WIFI controller");
 
-    let wifi_interface = interfaces.station;
+    let wifi_interface = esp_radio::wifi::Interface::station();
     let mac_address = wifi_interface.mac_address();
 
     let config = embassy_net::Config::dhcpv4(Default::default());

@@ -27,8 +27,9 @@ pub async fn matrix_task(
         let frequency: Rate = { Rate::from_mhz(80) };
         Rmt::new(rmt, frequency)
     }
-    .expect("Failed to initialize RMT")
-    .into_async();
+    .expect("Failed to initialize RMT");
+    let rmt_frequency = rmt.frequency();
+    let rmt = rmt.into_async();
     info!("Rmt initialized.");
 
     const NUM_LEDS: usize = 32 * 8;
@@ -44,7 +45,7 @@ pub async fn matrix_task(
         LedColor,
         esp_hal_smartled::color_order::Grb,
         esp_hal_smartled::Ws2812bTiming,
-    >::new_with_memsize(rmt_channel, led, &mut rmt_buffer, 4)
+    >::new_with_memsize(rmt_channel, led, &mut rmt_buffer, 4, rmt_frequency)
     .expect("Failed to create SmartLeds adapter");
     info!("Led adapter initialized.");
 

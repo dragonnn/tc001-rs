@@ -12,7 +12,7 @@
 //!
 //! let mut rmt_buffer = [PulseCode::default(); buffer_size::<RGB8>(1)];
 //! let mut led = RmtSmartLeds::<{ buffer_size::<RGB8>(1) }, _, RGB8, color_order::Rgb, Ws2812Timing>::new(
-//!     rmt.channel0, peripherals.GPIO2, &mut rmt_buffer
+//!     rmt.channel0, peripherals.GPIO2, &mut rmt_buffer, rmt.frequency()
 //! );
 //!
 //! led.write(brightness([RED], 10)).unwrap();
@@ -41,9 +41,9 @@ use core::{fmt::Debug, marker::PhantomData};
 pub use color_order::ColorOrder;
 use esp_hal::{
     Async, Blocking, DriverMode,
-    clock::Clocks,
     gpio::{Level, interconnect::PeripheralOutput},
     rmt::{Channel, Error as RmtError, PulseCode, Tx, TxChannelConfig, TxChannelCreator},
+    time::Rate,
 };
 use num_traits::Unsigned;
 use smart_leds_trait::{CctWhite, RGB, RGB8, RGBCCT, RGBW, SmartLedsWrite, SmartLedsWriteAsync, White};
@@ -361,12 +361,12 @@ where
     /// # Errors
     ///
     /// If any configuration issue with the RMT [`Channel`] occurs, the error will be returned.
-    pub fn new<Ch, P>(channel: Ch, pin: P, rmt_buffer: &'d mut [PulseCode; BUFFER_SIZE]) -> Result<Self, RmtError>
+    pub fn new<Ch, P>(channel: Ch, pin: P, rmt_buffer: &'d mut [PulseCode; BUFFER_SIZE], frequency: Rate) -> Result<Self, RmtError>
     where
         Ch: TxChannelCreator<'d, Mode>,
         P: PeripheralOutput<'d>,
     {
-        Self::new_with_memsize(channel, pin, rmt_buffer, 1)
+        Self::new_with_memsize(channel, pin, rmt_buffer, 1, frequency)
     }
     /// Creates a new [`RmtSmartLeds`] that drives the provided output using the given RMT channel.
     ///
@@ -386,6 +386,7 @@ where
         pin: P,
         rmt_buffer: &'d mut [PulseCode; BUFFER_SIZE],
         memsize: u8,
+        frequency: Rate,
     ) -> Result<Self, RmtError>
     where
         Ch: TxChannelCreator<'d, Mode>,
@@ -400,10 +401,8 @@ where
 
         let channel = channel.configure_tx(&config).unwrap().with_pin(pin);
 
-        // Assume the RMT peripheral is set up to use the APB clock
-        let clocks = Clocks::get();
         // convert to the MHz value to simplify nanosecond calculations
-        let src_clock = clocks.apb_clock.as_hz() / 1_000_000;
+        let src_clock = frequency.as_hz() / 1_000_000;
 
         let zero_pulse = PulseCode::new(
             Level::High,

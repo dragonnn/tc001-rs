@@ -76,6 +76,7 @@ fn main() -> ! {
             led_pin,
             &mut rmt_buffer,
             2,
+            freq,
         )
         .unwrap()
     };
