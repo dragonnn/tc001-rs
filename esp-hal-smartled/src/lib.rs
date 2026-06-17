@@ -350,20 +350,18 @@ pub type WhiteSmartLeds<'d, const BUFFER_SIZE: usize, Mode, Timing> =
 const fn zero_pulse<T: Timing>(src_clock_mhz: u32) -> PulseCode {
     PulseCode::new(
         Level::High,
-        // FIXME: For some reason, we transmit half as many pulses as necessary. This broke somewhere between esp-hal 1.0 and 1.1.
-        //        It’s definitely not the clock reporting’s fault, but that’s all we know.
-        ((T::TIME_0_HIGH as u32 * src_clock_mhz * 2) / 1000) as u16,
+        ((T::TIME_0_HIGH as u32 * src_clock_mhz) / 1000) as u16,
         Level::Low,
-        ((T::TIME_0_LOW as u32 * src_clock_mhz * 2) / 1000) as u16,
+        ((T::TIME_0_LOW as u32 * src_clock_mhz) / 1000) as u16,
     )
 }
 /// Returns the pulse code for a one bit, given the RMT source clock’s speed in MHz.
 const fn one_pulse<T: Timing>(src_clock_mhz: u32) -> PulseCode {
     PulseCode::new(
         Level::High,
-        ((T::TIME_1_HIGH as u32 * src_clock_mhz * 2) / 1000) as u16,
+        ((T::TIME_1_HIGH as u32 * src_clock_mhz) / 1000) as u16,
         Level::Low,
-        ((T::TIME_1_LOW as u32 * src_clock_mhz * 2) / 1000) as u16,
+        ((T::TIME_1_LOW as u32 * src_clock_mhz) / 1000) as u16,
     )
 }
 
