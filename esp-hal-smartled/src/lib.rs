@@ -10,9 +10,8 @@
 //! ```rust,ignore
 //! let rmt = Rmt::new(peripherals.RMT, Rate::from_mhz(80)).unwrap();
 //!
-//! let mut rmt_buffer = [PulseCode::default(); buffer_size::<RGB8>(1)];
 //! let mut led = RmtSmartLeds::<{ buffer_size::<RGB8>(1) }, _, RGB8, color_order::Rgb, Ws2812Timing>::new(
-//!     rmt.channel0, peripherals.GPIO2, &mut rmt_buffer, rmt.frequency()
+//!     rmt.channel0, peripherals.GPIO2
 //! );
 //!
 //! led.write(brightness([RED], 10)).unwrap();
@@ -40,13 +39,15 @@ use core::{fmt::Debug, marker::PhantomData};
 
 pub use color_order::ColorOrder;
 use esp_hal::{
-    Async, Blocking, DriverMode,
-    gpio::{Level, interconnect::PeripheralOutput},
-    rmt::{Channel, Error as RmtError, PulseCode, Tx, TxChannelConfig, TxChannelCreator},
+    gpio::{interconnect::PeripheralOutput, Level},
+    rmt::{
+        Channel, ConfigError as RmtConfigError, Error as RmtError, PulseCode, Tx, TxChannelConfig, TxChannelCreator,
+    },
     time::Rate,
+    Async, Blocking, DriverMode,
 };
 use num_traits::Unsigned;
-use smart_leds_trait::{CctWhite, RGB, RGB8, RGBCCT, RGBW, SmartLedsWrite, SmartLedsWriteAsync, White};
+use smart_leds_trait::{CctWhite, SmartLedsWrite, SmartLedsWriteAsync, White, RGB, RGB8, RGBCCT, RGBW};
 
 /// Common trait for all different smart LED dependent timings.
 ///
@@ -210,7 +211,7 @@ pub const fn buffer_size<C: Color>(led_count: usize) -> usize {
 /// Common [`ColorOrder`] implementations.
 pub mod color_order {
     use num_traits::Unsigned;
-    use smart_leds_trait::{RGB, RGBW, White};
+    use smart_leds_trait::{White, RGB, RGBW};
 
     use crate::Color;
 
@@ -345,6 +346,27 @@ pub type Sk68xxRgbwSmartLeds<'d, const BUFFER_SIZE: usize, Mode> =
 pub type WhiteSmartLeds<'d, const BUFFER_SIZE: usize, Mode, Timing> =
     RmtSmartLeds<'d, BUFFER_SIZE, Mode, White<u8>, color_order::SingleChannel, Timing>;
 
+/// Returns the pulse code for a zero bit, given the RMT source clock’s speed in MHz.
+const fn zero_pulse<T: Timing>(src_clock_mhz: u32) -> PulseCode {
+    PulseCode::new(
+        Level::High,
+        // FIXME: For some reason, we transmit half as many pulses as necessary. This broke somewhere between esp-hal 1.0 and 1.1.
+        //        It’s definitely not the clock reporting’s fault, but that’s all we know.
+        ((T::TIME_0_HIGH as u32 * src_clock_mhz * 2) / 1000) as u16,
+        Level::Low,
+        ((T::TIME_0_LOW as u32 * src_clock_mhz * 2) / 1000) as u16,
+    )
+}
+/// Returns the pulse code for a one bit, given the RMT source clock’s speed in MHz.
+const fn one_pulse<T: Timing>(src_clock_mhz: u32) -> PulseCode {
+    PulseCode::new(
+        Level::High,
+        ((T::TIME_1_HIGH as u32 * src_clock_mhz * 2) / 1000) as u16,
+        Level::Low,
+        ((T::TIME_1_LOW as u32 * src_clock_mhz * 2) / 1000) as u16,
+    )
+}
+
 impl<'d, const BUFFER_SIZE: usize, Mode, C, Order, Timing> RmtSmartLeds<'d, BUFFER_SIZE, Mode, C, Order, Timing>
 where
     Mode: DriverMode,
@@ -361,7 +383,12 @@ where
     /// # Errors
     ///
     /// If any configuration issue with the RMT [`Channel`] occurs, the error will be returned.
-    pub fn new<Ch, P>(channel: Ch, pin: P, rmt_buffer: &'d mut [PulseCode; BUFFER_SIZE], frequency: Rate) -> Result<Self, RmtError>
+    pub fn new<Ch, P>(
+        channel: Ch,
+        pin: P,
+        rmt_buffer: &'d mut [PulseCode; BUFFER_SIZE],
+        frequency: Rate,
+    ) -> Result<Self, RmtConfigError>
     where
         Ch: TxChannelCreator<'d, Mode>,
         P: PeripheralOutput<'d>,
@@ -387,7 +414,7 @@ where
         rmt_buffer: &'d mut [PulseCode; BUFFER_SIZE],
         memsize: u8,
         frequency: Rate,
-    ) -> Result<Self, RmtError>
+    ) -> Result<Self, RmtConfigError>
     where
         Ch: TxChannelCreator<'d, Mode>,
         P: PeripheralOutput<'d>,
@@ -399,31 +426,18 @@ where
             .with_carrier_modulation(false)
             .with_idle_output(true);
 
-        let channel = channel.configure_tx(&config).unwrap().with_pin(pin);
+        let channel = channel.configure_tx(&config)?.with_pin(pin);
 
         // convert to the MHz value to simplify nanosecond calculations
         let src_clock = frequency.as_hz() / 1_000_000;
-
-        let zero_pulse = PulseCode::new(
-            Level::High,
-            ((Timing::TIME_0_HIGH as u32 * src_clock) / 1000) as u16,
-            Level::Low,
-            ((Timing::TIME_0_LOW as u32 * src_clock) / 1000) as u16,
-        );
-        rmt_buffer.fill(zero_pulse);
+        for buf in rmt_buffer.iter_mut() {
+            *buf = zero_pulse::<Timing>(src_clock);
+        }
         rmt_buffer[BUFFER_SIZE - 1] = PulseCode::end_marker();
         Ok(Self {
             channel: Some(channel),
             rmt_buffer,
-            pulses: (
-                zero_pulse,
-                PulseCode::new(
-                    Level::High,
-                    ((Timing::TIME_1_HIGH as u32 * src_clock) / 1000) as u16,
-                    Level::Low,
-                    ((Timing::TIME_1_LOW as u32 * src_clock) / 1000) as u16,
-                ),
-            ),
+            pulses: (zero_pulse::<Timing>(src_clock), one_pulse::<Timing>(src_clock)),
             _order: PhantomData,
             _timing: PhantomData,
             _color: PhantomData,
@@ -473,21 +487,14 @@ where
         // This is currently unavoidable since transmit consumes the channel on error.
         // This is a known design flaw in the current RMT API and will be fixed soon.
         // We should adjust our usage accordingly as soon as possible.
-        let transmit = channel.transmit(self.rmt_buffer);
-        match transmit {
-            Ok(t) => match t.wait() {
-                Ok(c) => {
-                    self.channel = Some(c);
-                    Ok(())
-                }
-                Err(e) => {
-                    self.channel = Some(e.1);
-                    Err(AdapterError::TransmissionError(e.0))
-                }
-            },
+        match channel.transmit(self.rmt_buffer).map_err(|(e, _)| e)?.wait() {
+            Ok(chan) => {
+                self.channel = Some(chan);
+                Ok(())
+            }
             Err((e, chan)) => {
                 self.channel = Some(chan);
-                return Err(AdapterError::TransmissionError(e));
+                Err(AdapterError::TransmissionError(e))
             }
         }
     }

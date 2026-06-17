@@ -27,6 +27,7 @@
 #![no_std]
 #![no_main]
 
+use core::cfg_select;
 use esp_backtrace as _;
 use esp_hal::{delay::Delay, rmt::Rmt, time::Rate};
 use esp_hal_smartled::{RmtSmartLeds, Ws2812Timing, buffer_size, color_order};
@@ -41,27 +42,31 @@ esp_bootloader_esp_idf::esp_app_desc!();
 fn main() -> ! {
     let peripherals = esp_hal::init(esp_hal::Config::default());
 
-    // Each devkit uses a unique GPIO for the RGB LED, so in order to support
-    // all chips we must unfortunately use `#[cfg]`s:
-    cfg_if::cfg_if! {
-        if #[cfg(feature = "esp32")] {
+    // Each devkit uses a unique GPIO for the RGB LED.
+    cfg_select! {
+        feature = "esp32" => {
             let led_pin = peripherals.GPIO33;
-        } else if #[cfg(feature = "esp32c3")] {
+        }
+        feature = "esp32c3" => {
             let led_pin = peripherals.GPIO8;
-        } else if #[cfg(any(feature = "esp32c6", feature = "esp32h2"))] {
+        }
+        any(feature = "esp32c6", feature = "esp32h2") => {
             let led_pin = peripherals.GPIO8;
-        } else if #[cfg(feature = "esp32s2")] {
+        }
+        feature = "esp32s2" => {
             let led_pin = peripherals.GPIO18;
-        } else if #[cfg(feature = "esp32s3")] {
+        }
+        feature = "esp32s3" => {
             let led_pin = peripherals.GPIO48;
         }
     }
 
     // Configure RMT peripheral globally
-    cfg_if::cfg_if! {
-        if #[cfg(feature = "esp32h2")] {
+    cfg_select! {
+        feature = "esp32h2" => {
             let freq = Rate::from_mhz(32);
-        } else {
+        }
+        _ => {
             let freq = Rate::from_mhz(80);
         }
     }
@@ -69,20 +74,20 @@ fn main() -> ! {
     type LedColor = RGB8;
     let mut led = {
         let rmt = Rmt::new(peripherals.RMT, freq).expect("Failed to initialize RMT0");
-        let mut rmt_buffer = [esp_hal::rmt::PulseCode::default(); buffer_size::<LedColor>(1)];
         // Configure color order and timing implementation as needed.
         RmtSmartLeds::<{ buffer_size::<LedColor>(1) }, _, LedColor, color_order::Rgb, Ws2812Timing>::new_with_memsize(
             rmt.channel0,
             led_pin,
-            &mut rmt_buffer,
             2,
-            freq,
-        )
-        .unwrap()
+        ).unwrap()
     };
     let delay = Delay::new();
 
-    let mut color = Hsv { hue: 0, sat: 255, val: 255 };
+    let mut color = Hsv {
+        hue: 0,
+        sat: 255,
+        val: 255,
+    };
     let mut data;
 
     loop {
@@ -95,7 +100,8 @@ fn main() -> ! {
             // When sending to the LED, we do a gamma correction first (see smart_leds
             // documentation for details) and then limit the brightness to 10 out of 255 so
             // that the output it's not too bright.
-            led.write(brightness(gamma(data.iter().cloned()), 10)).unwrap();
+            led.write(brightness(gamma(data.iter().cloned()), 10))
+                .unwrap();
             delay.delay_millis(20);
         }
     }
