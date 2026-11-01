@@ -26,11 +26,13 @@ use esp_hal::{
     ledc::{channel::ChannelHW, timer::TimerIFace},
     rmt::Rmt,
     rng::Rng,
-    system::Stack,
     time::Rate,
     timer::timg::TimerGroup,
 };
-use esp_rtos::embassy::{Executor, InterruptExecutor};
+use esp_rtos::{
+    embassy::{Executor, InterruptExecutor},
+    thread::{Stack, ThreadSpawner},
+};
 use log::{error, info};
 use smart_leds::SmartLedsWriteAsync;
 use static_cell::StaticCell;
@@ -137,12 +139,13 @@ async fn main(spawner: Spawner) {
     info!("Embassy initialized!");
     let led = peripherals.GPIO32;
     let rmt = peripherals.RMT;
-    static APP_CORE_STACK: StaticCell<Stack<{ 28 * 1024 }>> = StaticCell::new();
-    let app_core_stack = APP_CORE_STACK.init(Stack::new());
+    static MATRIX_STACK: StaticCell<Stack<{ 28 * 1024 }>> = StaticCell::new();
+    let matrix_stack = MATRIX_STACK.init(Stack::new());
 
     let rtc2 = &*rtc;
-    info!("Starting second core...");
-    esp_rtos::start_second_core(peripherals.CPU_CTRL, app_core_stack, move || {
+    // Test RMT without simultaneous peripheral accesses from the other CPU.
+    info!("Starting matrix thread on first core...");
+    ThreadSpawner::from_static(matrix_stack).with_pinned_to(esp_hal::system::Cpu::ProCpu).spawn(move || {
         static EXECUTOR: StaticCell<Executor> = StaticCell::new();
         let executor = EXECUTOR.init(Executor::new());
         executor.run(|spawner| {

@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 
 use embassy_time::Duration;
 use embedded_graphics::{prelude::*, primitives::Rectangle};
-use esp_hal::{rmt::Rmt, time::Rate};
+use esp_hal::{rmt::Rmt, time::Rate, xtensa_lx::interrupt::free};
 use esp_hal_smartled::RmtSmartLeds;
 use smart_leds::RGB8;
 
@@ -29,7 +29,6 @@ pub async fn matrix_task(
     }
     .expect("Failed to initialize RMT");
     let rmt_frequency = rmt.frequency();
-    let rmt = rmt.into_async();
     info!("Rmt initialized.");
 
     const NUM_LEDS: usize = 32 * 8;
@@ -45,11 +44,11 @@ pub async fn matrix_task(
         LedColor,
         esp_hal_smartled::color_order::Grb,
         esp_hal_smartled::Ws2812bTiming,
-    >::new_with_memsize(rmt_channel, led, &mut rmt_buffer, 4, rmt_frequency)
+    >::new_with_memsize(rmt_channel, led, &mut rmt_buffer, 6, rmt_frequency)
     .expect("Failed to create SmartLeds adapter");
     info!("Led adapter initialized.");
 
-    let mut matrix = smart_leds_matrix::SmartLedMatrixAsync::<_, _, { NUM_LEDS }>::new(
+    let mut matrix = smart_leds_matrix::SmartLedMatrix::<_, _, { NUM_LEDS }>::new(
         led,
         smart_leds_matrix::layout::Rectangular::new_tc001(32, 8),
     );
@@ -57,7 +56,42 @@ pub async fn matrix_task(
     let handle = esp_rtos::CurrentThreadHandle::get();
     handle.set_priority(31);
 
-    matrix.flush_with_gamma().await.ok();
+    let mut transmission_frames = 0u32;
+    let mut transmission_errors = 0u32;
+    let mut last_error_report = embassy_time::Instant::now();
+    let mut report_transmission = |result: Result<(), esp_hal_smartled::AdapterError>| {
+        transmission_frames = transmission_frames.saturating_add(1);
+        if let Err(error) = result {
+            transmission_errors = transmission_errors.saturating_add(1);
+            let now = embassy_time::Instant::now();
+            if transmission_errors == 1
+                || now
+                    .checked_duration_since(last_error_report)
+                    .is_some_and(|elapsed| elapsed >= Duration::from_secs(1))
+            {
+                let rmt = esp_hal::peripherals::RMT::regs();
+                let raw = rmt.int_raw().read();
+                let status = rmt.chstatus(0).read();
+                let config = rmt.chconf0(0).read();
+                let limit = rmt.ch_tx_lim(0).read();
+                let apb = rmt.apb_conf().read();
+                warn!(
+                    "Matrix RMT transmission failed: {:?} ({} errors / {} frames)",
+                    error, transmission_errors, transmission_frames
+                );
+                warn!(
+                    "Matrix RMT status: raw={:#010x}, status={:#010x}, tx_end={}, hw_error={}, blocks={}, threshold={}, divider={}, wrap={}",
+                    raw.bits(), status.bits(), raw.ch_tx_end(0).bit(), raw.ch_err(0).bit(),
+                    config.mem_size().bits(), limit.tx_lim().bits(), config.div_cnt().bits(),
+                    apb.mem_tx_wrap_en().bit()
+                );
+                last_error_report = now;
+            }
+        }
+    };
+
+    // Keep this core's interrupts from delaying RMT refills during the blocking flush.
+    report_transmission(free(|| matrix.flush_with_gamma()));
 
     info!("Starting matrix loop");
 
@@ -91,7 +125,7 @@ pub async fn matrix_task(
             current_page.render(&mut matrix);
             status.update();
             status.render(&mut matrix);
-            matrix.flush_with_gamma().await.ok();
+            report_transmission(free(|| matrix.flush_with_gamma()));
             wdt0.feed();
             let now = embassy_time::Instant::now();
             loop {
@@ -171,7 +205,7 @@ pub async fn matrix_task(
                         }
                         status.render(&mut matrix);
 
-                        matrix.flush_with_gamma().await.ok();
+                        report_transmission(free(|| matrix.flush_with_gamma()));
                         wdt0.feed();
                         embassy_time::Timer::after_millis(25).await;
                     }
@@ -198,7 +232,7 @@ pub async fn matrix_task(
 
                         status.render(&mut matrix);
 
-                        matrix.flush_with_gamma().await.ok();
+                        report_transmission(free(|| matrix.flush_with_gamma()));
                         wdt0.feed();
                         embassy_time::Timer::after_millis(25).await;
                     }
