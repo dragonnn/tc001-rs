@@ -33,9 +33,9 @@ async fn main_task(spawner: Spawner) {
         },
     );
 
-    spawner.must_spawn(binary_sensor_class(sensor));
+    spawner.spawn(binary_sensor_class(sensor).unwrap());
 
-    embassy_ha::run(&mut device, &mut stream).await.unwrap();
+    common::run(&mut device, &mut stream).await;
 }
 
 #[embassy_executor::task]

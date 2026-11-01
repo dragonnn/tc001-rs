@@ -23,7 +23,6 @@ use esp_hal::{
     delay::Delay,
     gpio::{Input, InputConfig, Level, Output, OutputConfig, Pull},
     i2c::master::I2c,
-    interrupt::software::SoftwareInterruptControl,
     ledc::{channel::ChannelHW, timer::TimerIFace},
     rmt::Rmt,
     rng::Rng,
@@ -106,8 +105,7 @@ async fn main(spawner: Spawner) {
     let mut wdt0 = timg0.wdt;
     wdt0.set_timeout(esp_hal::timer::timg::MwdtStage::Stage0, esp_hal::time::Duration::from_millis(5000));
     wdt0.enable();
-    let sw_int = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
-    esp_rtos::start(timg0.timer0, sw_int.software_interrupt0);
+    esp_rtos::start(timg0.timer0);
 
     info!("Heap initialized");
     esp_alloc::heap_allocator!(#[unsafe(link_section = ".dram2_uninit")] size: 96 * 1024);
@@ -144,7 +142,7 @@ async fn main(spawner: Spawner) {
 
     let rtc2 = &*rtc;
     info!("Starting second core...");
-    esp_rtos::start_second_core(peripherals.CPU_CTRL, sw_int.software_interrupt1, app_core_stack, move || {
+    esp_rtos::start_second_core(peripherals.CPU_CTRL, app_core_stack, move || {
         static EXECUTOR: StaticCell<Executor> = StaticCell::new();
         let executor = EXECUTOR.init(Executor::new());
         executor.run(|spawner| {
@@ -198,7 +196,7 @@ async fn main(spawner: Spawner) {
     let battery_pin = adc_config.enable_pin(peripherals.GPIO34, esp_hal::analog::adc::Attenuation::_11dB);
     let light_sensor_pin = adc_config.enable_pin(peripherals.GPIO35, esp_hal::analog::adc::Attenuation::_11dB);
 
-    let adc = esp_hal::analog::adc::Adc::new(peripherals.ADC1, adc_config);
+    let adc = esp_hal::analog::adc::Adc::new(peripherals.ADC1, adc_config).unwrap();
 
     spawner.spawn(adc::adc_task(adc, battery_pin, light_sensor_pin).unwrap());
 

@@ -5,6 +5,22 @@ pub use std_async_tcp::AsyncTcp;
 
 pub static EXECUTOR: StaticCell<Executor> = StaticCell::new();
 
+pub async fn run(device: &mut embassy_ha::Device<'_>, stream: &mut AsyncTcp) {
+    let events = embassy_sync::channel::Channel::<
+        embassy_sync::blocking_mutex::raw::NoopRawMutex,
+        embassy_ha::MqttState,
+        1,
+    >::new();
+    let run = embassy_ha::run(device, stream, events.sender().into(), Default::default());
+    let drain_events = async {
+        loop {
+            tracing::debug!("MQTT state: {:?}", events.receive().await);
+        }
+    };
+    let embassy_futures::select::Either::First(result) = embassy_futures::select::select(run, drain_events).await;
+    result.unwrap();
+}
+
 #[macro_export]
 macro_rules! example_main {
     () => {
@@ -19,7 +35,7 @@ macro_rules! example_main {
 
             let executor = common::EXECUTOR.init(Executor::new());
             executor.run(|spawner| {
-                spawner.must_spawn(main_task(spawner));
+                spawner.spawn(main_task(spawner).unwrap());
             });
         }
     };

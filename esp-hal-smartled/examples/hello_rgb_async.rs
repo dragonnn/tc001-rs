@@ -18,9 +18,11 @@ use embassy_executor::Spawner;
 use embassy_futures::join::join;
 use embassy_time::Timer;
 use esp_backtrace as _;
-use esp_hal::interrupt::software::SoftwareInterruptControl;
 use esp_hal::timer::timg::TimerGroup;
-use esp_hal::{rmt::Rmt, time::Rate};
+use esp_hal::{
+    rmt::{PulseCode, Rmt},
+    time::Rate,
+};
 use esp_hal_smartled::{RmtSmartLeds, Ws2811LowSpeedTiming, Ws2811Timing, Ws2812Timing, Ws2812bTiming, buffer_size, color_order};
 use smart_leds::RGB8;
 use smart_leds::{
@@ -34,8 +36,7 @@ esp_bootloader_esp_idf::esp_app_desc!();
 async fn main(spawner: Spawner) -> ! {
     let peripherals = esp_hal::init(esp_hal::Config::default());
     let timg0 = TimerGroup::new(peripherals.TIMG0);
-    let software_interrupt = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
-    esp_rtos::start(timg0.timer0, software_interrupt.software_interrupt0);
+    esp_rtos::start(timg0.timer0, peripherals.FROM_CPU_INTR0);
 
     // Each devkit uses a unique GPIO for the RGB LED.
     cfg_select! {
@@ -69,14 +70,18 @@ async fn main(spawner: Spawner) -> ! {
     // Increase LED count as needed.
     const LEDS: usize = 1;
 
+    let mut rmt_buffer = [PulseCode::default(); buffer_size::<RGB8>(LEDS)];
     let mut led = {
         let rmt = Rmt::new(peripherals.RMT, freq)
             .expect("Failed to initialize RMT0")
             .into_async();
+        let frequency = rmt.frequency();
         // Configure color order and timing implementation as needed.
         RmtSmartLeds::<{ buffer_size::<RGB8>(LEDS) }, _, RGB8, color_order::Rgb, Ws2811LowSpeedTiming>::new(
             rmt.channel0,
             led_pin,
+            &mut rmt_buffer,
+            frequency,
         )
         .unwrap()
     };

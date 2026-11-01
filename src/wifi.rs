@@ -3,7 +3,7 @@ use core::sync::atomic::Ordering;
 
 use atomic_enum::atomic_enum;
 use embassy_time::{Duration, Timer};
-use esp_radio::wifi::{scan::ScanConfig, sta::StationConfig, WifiController};
+use esp_radio::wifi::{scan::ScanConfig, sta::StationConfig, AuthenticationMethodConfig, WifiController};
 
 static WIFI_STATE: AtomicWiFiState = AtomicWiFiState::new(WiFiState::Disconnected);
 
@@ -58,9 +58,12 @@ pub async fn wifi_task(mut controller: WifiController<'static>, storage: crate::
             if let Ok(password) = storage.read::<String>(&crate::storage::Key::Wifi(ap.ssid.as_str())).await {
                 info!("Found saved network: {}, trying to connect...", ap.ssid.as_str());
                 WIFI_STATE.store(WiFiState::Connecting, Ordering::Relaxed);
-                client_config = esp_radio::wifi::Config::Station(
-                    StationConfig::default().with_ssid(ap.ssid).with_password(password),
-                );
+                client_config =
+                    esp_radio::wifi::Config::Station(StationConfig::default().with_ssid(ap.ssid).with_authentication(
+                        AuthenticationMethodConfig::Wpa2Personal(
+                            password.try_into().expect("Wi-Fi password exceeds 64 bytes"),
+                        ),
+                    ));
                 controller.set_config(&client_config).unwrap();
                 found_network = true;
                 break;

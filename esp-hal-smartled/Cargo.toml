@@ -12,7 +12,7 @@ description = "smart-leds driver for esp-hal using RMT peripheral."
 name = "esp_hal_smartled"
 
 [dependencies]
-esp-hal = { version = "1.1.0", default-features = false, features = [
+esp-hal = { version = "1.2.0", default-features = false, features = [
     "requires-unstable",
     "unstable",
 ] }
@@ -89,12 +89,12 @@ default-target = "riscv32imc-unknown-none-elf"
 targets = ["riscv32imc-unknown-none-elf"]
 
 [dev-dependencies]
-esp-hal = { version = "1.1.1", features = ["unstable"] }
-esp-rtos = { version = "0.3", features = ["embassy"] }
-esp-backtrace = { version = "0.19", features = ["panic-handler", "println"] }
-esp-println = { version = "0.17", features = ["defmt-espflash", "auto"] }
+esp-hal = { version = "1.2.0", features = ["unstable"] }
+esp-rtos = { version = "0.4", features = ["embassy"] }
+esp-backtrace = { version = "0.20", features = ["panic-handler", "println"] }
+esp-println = { version = "0.18", features = ["defmt-espflash", "auto"] }
 embedded-graphics = { version = "0.8" }
-esp-bootloader-esp-idf = { version = "0.5.0" }
+esp-bootloader-esp-idf = { version = "0.6.0" }
 smart-leds = "0.4"
 embassy-executor = "0.10"
 embassy-time = "0.5"

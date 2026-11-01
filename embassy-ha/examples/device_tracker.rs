@@ -32,9 +32,9 @@ async fn main_task(spawner: Spawner) {
         },
     );
 
-    spawner.must_spawn(tracker_task(tracker));
+    spawner.spawn(tracker_task(tracker).unwrap());
 
-    embassy_ha::run(&mut device, &mut stream).await.unwrap();
+    common::run(&mut device, &mut stream).await;
 }
 
 #[embassy_executor::task]

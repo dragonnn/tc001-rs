@@ -32,16 +32,15 @@ impl AsyncTcp {
             let write_buffer = write_buffer.clone();
             move || {
                 loop {
-                    let buffer = {
-                        let mut buffer = write_buffer.lock().unwrap();
-                        std::mem::take(&mut *buffer)
-                    };
+                    let mut buffer = write_buffer.lock().unwrap();
                     if !buffer.is_empty() {
                         let len = buffer.len();
                         write_stream.write_all(&buffer).unwrap();
                         write_stream.flush().unwrap();
+                        buffer.clear();
                         tracing::debug!("Wrote {} bytes to TCP stream", len);
                     } else {
+                        drop(buffer);
                         std::thread::park();
                     }
                 }
@@ -92,6 +91,13 @@ impl embedded_io_async::Write for AsyncTcp {
         }
         self.write_handle.thread().unpark();
         Ok(buf.len())
+    }
+
+    async fn flush(&mut self) -> Result<(), Self::Error> {
+        while !self.write_buffer.lock().unwrap().is_empty() {
+            embassy_time::Timer::after_millis(1).await;
+        }
+        Ok(())
     }
 }
 

@@ -33,9 +33,9 @@ async fn main_task(spawner: Spawner) {
         },
     );
 
-    spawner.must_spawn(switch_task(switch));
+    spawner.spawn(switch_task(switch).unwrap());
 
-    embassy_ha::run(&mut device, &mut stream).await.unwrap();
+    common::run(&mut device, &mut stream).await;
 }
 
 #[embassy_executor::task]

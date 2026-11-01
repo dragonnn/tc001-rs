@@ -67,11 +67,11 @@ async fn main_task(spawner: Spawner) {
         },
     );
 
-    spawner.must_spawn(random_temperature_task(temperature_sensor));
-    spawner.must_spawn(random_humidity_task(humidity_sensor));
-    spawner.must_spawn(random_signal_strength_task(signal_strength_sensor));
+    spawner.spawn(random_temperature_task(temperature_sensor).unwrap());
+    spawner.spawn(random_humidity_task(humidity_sensor).unwrap());
+    spawner.spawn(random_signal_strength_task(signal_strength_sensor).unwrap());
 
-    embassy_ha::run(&mut device, &mut stream).await.unwrap();
+    common::run(&mut device, &mut stream).await;
 }
 
 #[embassy_executor::task]

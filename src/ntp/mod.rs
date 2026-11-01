@@ -9,7 +9,7 @@ mod sntpc;
 static NTP_SYNC: Signal<CriticalSectionRawMutex, chrono::NaiveDateTime> = Signal::new();
 
 async fn ntp_request(stack: embassy_net::Stack<'static>) -> Result<chrono::NaiveDateTime, ()> {
-    let mut addrs = stack.dns_query("pl.pool.ntp.org", smoltcp::wire::DnsQueryType::A).await.unwrap_or_default();
+    let mut addrs = stack.dns_query("pl.pool.ntp.org", embassy_net::dns::DnsQueryType::A).await.unwrap_or_default();
     let addr = addrs.pop().ok_or(())?;
 
     let ntp_packet = sntpc::NtpPacket::new();

@@ -97,10 +97,15 @@ impl<T: NorFlash + ReadNorFlash> ekv::flash::Flash for DbFlash<T> {
     }
 }
 
-pub async fn init(flash: FLASH<'static>) -> Storage {
-    let mut flash = FlashStorage::new(flash).multicore_auto_park();
+pub async fn init(mut flash: FLASH<'static>) -> Storage {
     let mut buffer = [0u8; esp_bootloader_esp_idf::partitions::PARTITION_TABLE_MAX_LEN];
-    let pt = esp_bootloader_esp_idf::partitions::read_partition_table(&mut flash, &mut buffer).unwrap();
+    let pt = {
+        let config =
+            esp_hal::flash::Config::default().with_multi_core_strategy(esp_hal::flash::MultiCoreStrategy::AutoPark);
+        let mut partition_flash = esp_hal::flash::Flash::new(flash.reborrow(), config).unwrap();
+        esp_bootloader_esp_idf::partitions::read_partition_table(&mut partition_flash, &mut buffer).unwrap()
+    };
+    let flash = FlashStorage::new(flash).multicore_auto_park();
     let data = pt
         .iter()
         .find(|p| {
