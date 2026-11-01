@@ -130,7 +130,7 @@ async fn main(spawner: Spawner) {
         )
     );
 
-    let mut rtc = esp_hal::rtc_cntl::Rtc::new(peripherals.LPWR);
+    let rtc = esp_hal::rtc_cntl::Rtc::new(peripherals.RTC_TIMER);
     static RTC: StaticCell<esp_hal::rtc_cntl::Rtc> = StaticCell::new();
     let rtc = RTC.init(rtc);
 
